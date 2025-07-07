@@ -1,0 +1,16 @@
+{
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  //禁用自己配置的eslint规则
+  "eslint.enable": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": null
+  }
+}

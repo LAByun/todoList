@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }],
+  "compilerOptions": {
+    "esModuleInterop": true,  // 允许 ES 模块语法导入 CommonJS 模块
+    "allowSyntheticDefaultImports": true,  // 解决类型检查报错（可选但推荐）[3,6](@ref)
+    "strict": false
+  }
+}
