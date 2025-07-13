@@ -1,5 +1,6 @@
-appId: com.electron.app
+appId: com.electron.todoList
 productName: todoList
+executableName: todoList
 directories:
   buildResources: build
 files:
@@ -12,6 +13,8 @@ files:
 asarUnpack:
   - resources/**
 win:
+  appId: com.electron.todoList
+  productName: todoList
   executableName: todoList
   icon: build/icon.ico
 nsis:

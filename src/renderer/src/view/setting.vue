@@ -59,7 +59,7 @@
         
         <!-- 主题选择 -->
         <div class="setting-item">
-          <h3 class="setting-name">主题颜色</h3>
+          <h3 class="setting-name">主题颜色(暂不可用)</h3>
           <div class="theme-selector">
             <div 
               v-for="theme in themes" 
@@ -84,6 +84,7 @@
               :min="30" 
               :max="100"
               class="opacity-slider"
+              @change="changeOpacity(settings.opacity)"
             ></el-slider>
             <span class="opacity-value">{{ settings.opacity }}%</span>
           </div>
@@ -147,6 +148,13 @@ const themes = [
 const saving = ref(false);
 const saveStatus = ref(false);
 const resetStatus = ref(false);
+const changeOpacity=(opacity)=>{
+  console.log(opacity/100)
+  
+window.electronAPI.setTransparentColor(opacity/100)
+
+  // localStorage.setItem('vue3-todo-transparentColor', JSON.stringify(opacity));
+}
 
 // 端口验证
 const portError = computed(() => {
@@ -154,6 +162,7 @@ const portError = computed(() => {
   const portNum = parseInt(settings.port);
   return isNaN(portNum) || portNum < 1 || portNum > 65535;
 });
+
 
 // 从本地存储加载设置
 const loadSettings = () => {

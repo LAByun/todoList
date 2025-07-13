@@ -1,7 +1,7 @@
 <template>
     <div class="todo-app">
         <div class="container">
-            <div class="title" style="app-region: drag;">
+            <div class="title" :style="defaultBackgroundColor" style="app-region: drag;">
                 <div style="display: flex; align-items: center; position: relative;left: 20px;">
                     <List style="width: 30px; margin-right: 10px;" class="mainColor" />
                     <span class="showWaitListClass" style="app-region:no-drag;" @click="showWaitListFn">待办内容</span>
@@ -29,10 +29,10 @@
 
 
             </div>
-           
-         
+
+
             <transition name="fade">
-                <div class="input-container" v-if="showAddBlock">
+                <div class="input-container" :style="defaultBackgroundColor"  v-if="showAddBlock">
                     <div class="flex-input">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div
@@ -66,7 +66,7 @@
                 </div>
             </transition>
             <transition name="fade">
-                <transition-group name="fade" tag="div" class="tasks-container" v-if="showWaitList">
+                <transition-group name="fade" tag="div" :style="defaultBackgroundColor"  class="tasks-container" v-if="showWaitList">
                     <div style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
                         全部待办
                     </div>
@@ -75,16 +75,45 @@
                         <p>暂无任务，添加一个吧~</p>
                     </div>
 
+                    <div class="selectContainerClass">
 
-                    <div v-for="(task, index) in tasks" :key="task.id" class="todo-card" @click="setTask(task)">
-                        <div class="task-row">
-                            <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
-                            <span :class="{ 'completed': task.completed }">{{ task.text }}</span>
+
+                        <div v-for="(task, index) in tasks" :key="task.id">
+                            <div class="todo-card">
+                                <div class="task-row" style="flex: 1;">
+                                    <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
+                                    <span :class="{ 'completed': task.completed }" style="flex: 1;"
+                                        @click="setTask(task)">{{ task.text }}</span>
+                                </div>
+                                <div>
+                                    <el-button type="primary" plain size="small" @click="changeTask(index)" circle>
+                                        
+                                        <Edit v-if="!task.editAble" style="width: 15px;" />
+                                        <Right v-else style="width: 15px;" />
+                                    </el-button>
+                                    <el-button type="danger" plain size="small" @click="removeTask(index)" circle>
+
+                                        <Delete style="width: 15px;" />
+                                    </el-button>
+
+
+                                </div>
+
+                            </div>
+                            <div>
+
+                                <Transition name="fade">
+                                    <div v-if="task.editAble"  style="position: relative;left: 10px;">
+                                        <el-input v-model="task.text"  class="inputSet" type="textarea"
+                                            placeholder="输入新任务..."></el-input>
+
+                                    </div>
+
+                                </Transition>
+                            </div>
+
+
                         </div>
-                        <el-button type="danger" plain size="small" @click="removeTask(index)" circle>
-
-                            <Delete style="width: 15px;" />
-                        </el-button>
                     </div>
                     <div v-if="tasks.length > 0" class="stats">
                         已完成 {{ completedCount }} / {{ tasks.length }}
@@ -113,12 +142,19 @@ import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, Clo
 
 const showAddBlock = ref(false)
 const showWaitList = ref(true)
+const defaultBackgroundColor = ref({})
 
-const setDialogVisible=()=>{
+const setDialogVisible = () => {
     window.electronAPI.getSetting()
 }
 const newTask = ref('');
 const tasks = ref([]);
+const changeTask = (index) => {
+    let task = tasks.value[index];
+    task.editAble=!task.editAble;
+
+
+}
 const quitAll = async () => {
     await window.electronAPI.closeWin()
 }
@@ -139,7 +175,8 @@ const addTask = () => {
         tasks.value.push({
             id: Date.now(),
             text: newTask.value.trim(),
-            completed: false
+            completed: false,
+            editAble:false
         });
         newTask.value = '';
         saveTasks();
@@ -167,8 +204,36 @@ const updateHeight = () => {
 
     window.electronAPI.resizeWindow(height)
 };
+const changeTransparetColor = (transparetColor) => {
+    defaultBackgroundColor.value={
+          backgroundColor: `hsl(0, 3%, 94%,${transparetColor})`
+    }
+     localStorage.setItem('vue3-todo-transparentColor', JSON.stringify(transparetColor));
+}
 
 onMounted(() => {
+    // let transparetColor=0.9;
+    // defaultBackgroundColor.value={
+    //       backgroundColor: `hsl(0, 3%, 94%,${transparetColor})`
+    // }
+
+    if(localStorage.getItem('vue3-todo-transparentColor')){
+        changeTransparetColor(localStorage.getItem('vue3-todo-transparentColor'))
+    }else{
+        changeTransparetColor(1)
+    }
+    console.log(localStorage.getItem('vue3-todo-transparentColor'))
+
+    // changeTransparetColor(localStorage.getItem('vue3-todo-transparentColor')? localStorage.getItem('vue3-todo-transparentColor'):transparetColor)
+
+    window.electronAPI.sendTransparentColor((color)=>{
+        console.log(color)
+
+      changeTransparetColor(color)
+    })
+
+
+    
     loadTasks();
     const resizeObserver = new ResizeObserver(entries => {
         const entry = entries[0];
@@ -185,6 +250,13 @@ onMounted(() => {
     // window.addEventListener('resize', updateHeight);
 });
 
+//写一个函数，获取当前窗口高度
+const getWindowHeight = () => {
+    return window.innerHeight;
+}
+
+
+
 
 
 
@@ -192,6 +264,42 @@ onMounted(() => {
 
 <style scoped>
 /* 自定义内容 */
+.selectContainerClass {
+    max-height: 500px;
+    overflow-y: auto;
+
+}
+
+.container::-webkit-scrollbar {
+    width: 10px;
+
+}
+
+
+.selectContainerClass::-webkit-scrollbar {
+
+    width: 5px;
+    height: 1px;
+}
+
+.selectContainerClass::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+.selectContainerClass::-webkit-scrollbar-thumb {
+    position: fixed;
+    border-radius: 5px;
+    /* 滚动条样式 */
+    -webkit-box-shadow: solid 0 0 1px rgb(0, 119, 255);
+    background-color: rgba(172, 187, 211, 0.397);
+    /* 滚动条颜色 */
+}
+
+.selectContainerClass::-webkit-scrollbar-thumb:hover {
+    background-color: #87addf;
+}
+
+
 .mainColor {
     color: #00a2ff;
 
@@ -210,7 +318,7 @@ onMounted(() => {
 }
 
 :deep(.inputSet .el-textarea__inner) {
-    background-color: #eeeeee;
+    background-color: var(--defaultBackgroundColor);
     /* 文本颜色 */
     width: 95%;
 
@@ -255,7 +363,6 @@ onMounted(() => {
 
 .container {
     width: 448px;
-
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -263,8 +370,9 @@ onMounted(() => {
 
 }
 
+
 .title {
-    width: 100%;
+    width: 90%;
     font-weight: 700;
     text-align: center;
 
@@ -290,7 +398,7 @@ onMounted(() => {
     padding: 10px;
     margin-top: 24px;
 
-    width: 100%;
+    width: 90%;
 }
 
 .flex-input {
@@ -309,7 +417,7 @@ onMounted(() => {
 
 .tasks-container {
     margin-top: 24px;
-    width: 100%;
+    width: 90%;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -317,6 +425,7 @@ onMounted(() => {
     border-radius: 10px;
     box-shadow: var(--shadow-sm);
     padding: 10px;
+
 
 }
 

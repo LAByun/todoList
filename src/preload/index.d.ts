@@ -15,6 +15,8 @@ declare global {
       resizeWindow:(height:number)=>Promise<string>
       getSetting:()=>Promise<string>
       setLoginAuto:(auto:boolean)=>Promise<string>
+      setTransparentColor:(color:string)=>Promise<string>
+      sendTransparentColor:(callback:(color:string)=>void)=>void
     }
   }
 }

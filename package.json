@@ -1,6 +1,6 @@
 {
   "name": "todoList",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An Electron application with Vue and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -55,8 +55,9 @@
   "build": {
     "appId": "com.electron.todoList",
     "productName": "todoList",
+    "executableName": "todoList",
     "copyright": "Copyright © 2023",
-    "asar": false,
+    "asar": true,
     "directories": {
       "output": "dist"
     },
@@ -71,22 +72,6 @@
       "icon": "build/icon.png"
     }
   },
-  "nsis": {
-    "artifactName": "${name}-${version}-setup.${ext}",
-    "shortcutName": "${productName}",
-    "uninstallDisplayName": "${productName}",
-    "createDesktopShortcut": "always",
-    "installerIcon": "build/icon.ico",
-    "uninstallerIcon": "build/icon.ico",
-    "installerSidebarName": "${productName}",
-    "uninstallerSidebarName": "${productName}",
-    "installerHeaderIcon": "build/icon.ico",
-    "uninstallerHeaderIcon": "build/icon.ico",
-    "installerHeader": "build/icon.ico",
-    "uninstallerHeader": "build/icon.ico",
-    "installerTransparent": true,
-    "uninstallerTransparent": true,
-    "include": "build/icon.ico"
-  },
+
   "packageManager": "yarn@4.6.0+sha224.acd0786f07ffc6c933940eb65fc1d627131ddf5455bddcc295dc90fd"
 }

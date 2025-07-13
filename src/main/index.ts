@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, nativeImage, Menu } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import path from 'path'
@@ -115,13 +115,13 @@ function createSettingWindow() {
   return mainWindow
 }
 
-
+app.setAppUserModelId('com.electron.todoList')
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.electron.todoList')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -137,33 +137,32 @@ app.whenReady().then(() => {
     saveJson(myjson)
     return "yes"
   })
+  //处理表格
   ipcMain.handle('exportExcel', (event, myjson, name) => {
     // console.log(myjson)
     setExcel(myjson, name)
     return "yes"
   })
 
-  ipcMain.handle('closeWin', async () => {
-    app.quit()
-
-    // console.log(res)
-
-  })
+//获取图片路径
   ipcMain.handle('getImgPath', async () => {
     const mypath = await dataHandle.getImgPath()
     console.log(mypath)
     return mypath
   })
+  //保存图片
   ipcMain.handle('saveImg', async (event, imgPath) => {
     const res = await dataHandle.saveImg(imgPath)
     // console.log(res)
     return res
   })
+  //修改图片
   ipcMain.handle('changeImg', async (event, imgPath, oldPath) => {
     const res = await dataHandle.changeImg(imgPath, oldPath)
     // console.log(res)
     return res
   })
+  //废弃
   ipcMain.handle('updatelampJTableJson', async (event, jsonData) => {
     const res = await dataHandle.updatelampJTableJson(jsonData)
     // console.log(res)
@@ -171,9 +170,21 @@ app.whenReady().then(() => {
   })
   //创建窗口
   const myWindow = createWindow()
-  //过于极端的方案
-  // myWindow.setIgnoreMouseEvents(true)
-  
+  createTray(myWindow)
+  //关闭或隐藏窗口
+    ipcMain.handle('closeWin', async () => {
+    // app.quit()
+      myWindow.hide()
+      myWindow.setSkipTaskbar(true)
+    // console.log(res)
+
+  })
+  //更改透明度,主进程直接向渲染进程发送消息
+  ipcMain.handle('setTransparentColor', (event, color) => {
+    console.log(color)
+    myWindow.webContents.send('sendTransparentColor',color)
+    return "transparent"
+  })
   // 动态调整高度
   ipcMain.handle('resizeWindow', (event, height) => {
     console.log(height)
@@ -200,6 +211,42 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+
+
+// 创建托管图标
+// 创建托盘图标
+function createTray(mainWindow: BrowserWindow) {
+  console.log(__dirname)
+  const iconPath = path.join(__dirname, '../../resources/icon.png');
+  const trayIcon = nativeImage.createFromPath(iconPath);
+  let tray = new Tray(trayIcon);
+
+  // 托盘菜单
+  const contextMenu = Menu.buildFromTemplate([
+    { 
+      label: '显示窗口', 
+      click: () => {
+        mainWindow.show() 
+        mainWindow.setSkipTaskbar(false)
+      }
+    },
+    { 
+      label: '退出', 
+      click: () => {
+        // app.isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+  tray.setContextMenu(contextMenu);
+
+  // 点击托盘图标显示窗口
+  tray.on('click', () => {
+        mainWindow.show() 
+        mainWindow.setSkipTaskbar(false)
+      });
+}
 async function saveJson(params: object[]) {
   const { filePath } = await dialog.showSaveDialog({
     title: 'Save JSON File',
@@ -226,6 +273,8 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.

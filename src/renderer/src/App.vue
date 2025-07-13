@@ -17,16 +17,18 @@ import { RouterLink, RouterView } from 'vue-router'
 <style>
 
 body {
+
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
 
 }
-/* 直接在body层面设置滚动条才有效---谷歌内核特攻 */
+/* 设置滚动条全局滚动条样式 */
 body::-webkit-scrollbar{
     width: 0px;
     height: 0px;
 }
+
 
 
 </style>
