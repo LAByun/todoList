@@ -152,8 +152,8 @@ const changeOpacity=(opacity)=>{
   console.log(opacity/100)
   
 window.electronAPI.setTransparentColor(opacity/100)
-
-  // localStorage.setItem('vue3-todo-transparentColor', JSON.stringify(opacity));
+ localStorage.setItem('dolist-settings', JSON.stringify(settings));
+ localStorage.setItem('vue3-todo-transparentColor', JSON.stringify(opacity/100));
 }
 
 // 端口验证
