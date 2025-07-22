@@ -12,12 +12,8 @@ const router = createRouter({
       children: [
         {
           path: '',
-          name: 'ICD',
-          component: () => import('../view/ICDselect.vue'),
-        },{
-          path: 'ICDs',
-          name: 'ICDs',
-          component: () => import('../view/ICDselect.vue'),
+          name: 'myhome',
+          component: () => import('../view/home.vue'),
         },{
           path: 'setting',
           name: 'setting',

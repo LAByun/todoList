@@ -1,5 +1,7 @@
-appId: com.electron.app
+appId: com.electron.todoList
 productName: todoList
+executableName: todoList
+asar: false
 directories:
   buildResources: build
 files:
@@ -12,15 +14,23 @@ files:
 asarUnpack:
   - resources/**
 win:
+
+  appId: com.electron.todoList
+
   executableName: todoList
   icon: build/icon.ico
 nsis:
+  oneClick: false
+  perMachine: false
+  deleteAppDataOnUninstall: false
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
   installerIcon: 'build/icon.ico'
   uninstallerIcon: 'build/icon.ico'
+  allowToChangeInstallationDirectory: true
+
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

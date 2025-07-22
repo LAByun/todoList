@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { send } from 'vite'
 
 // Custom APIs for renderer
 const api = {}
@@ -27,8 +28,8 @@ if (process.contextIsolated) {
       changeImg:(imgPath,oldPath)=>{
         return ipcRenderer.invoke('changeImg',imgPath,oldPath)
       },
-      updatelampJTableJson:(jsonData)=>{
-        return ipcRenderer.invoke('updatelampJTableJson',jsonData)
+      updateHistoryJson:(jsonData)=>{
+        return ipcRenderer.invoke('updateHistoryJson',jsonData)
       },
       closeWin:()=>{
         return ipcRenderer.invoke('closeWin')
@@ -41,6 +42,14 @@ if (process.contextIsolated) {
       },
       setLoginAuto:(auto:boolean)=>{
         return ipcRenderer.invoke('setLoginAuto',auto)
+      },
+      setTransparentColor:(color:string)=>{
+        return ipcRenderer.invoke('setTransparentColor',color)
+      },
+      sendTransparentColor:(callback)=>{
+        return ipcRenderer.on('sendTransparentColor',(event,color)=>{
+          callback(color)
+        })
       }
     })
   } catch (error) {
