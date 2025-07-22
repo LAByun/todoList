@@ -12,30 +12,30 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 490,
     height: 80,
-     transparent: true,
+    transparent: true,
     frame: false,
     show: false,
     // icon:path.join(__dirname, '../../resources/icon.png'),
     // fullscreen:true,
-    fullscreen:false,
+    fullscreen: false,
     autoHideMenuBar: true,
-    resizable:false,
-    alwaysOnTop:true,
-    hasShadow:false,
+    resizable: false,
+    alwaysOnTop: true,
+    hasShadow: false,
     // backgroundColor: '#00000000',
- 
+
     titleBarStyle: 'hidden',
     //这是全局不透明度
     // opacity:0.9,
 
-  
+
     title: '',
     // // expose window controls in Windows/Linux
-//     titleBarOverlay: {
-// color: 'rgba(0,0,0,0)', // 透明背景
-//   symbolColor: '#fff',     // 按钮颜色
-//   height: 0               // 控制区高度
-//     },
+    //     titleBarOverlay: {
+    // color: 'rgba(0,0,0,0)', // 透明背景
+    //   symbolColor: '#fff',     // 按钮颜色
+    //   height: 0               // 控制区高度
+    //     },
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       // devTools:false,
@@ -57,10 +57,10 @@ function createWindow() {
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    
+//  mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
@@ -76,7 +76,7 @@ function createSettingWindow() {
     // frame:false,
     // show: false,
     autoHideMenuBar: true,
-       icon:path.join(__dirname, '../../resources/icon.png'),
+    icon: path.join(__dirname, '../../resources/icon.png'),
     // transparent:true,
     // titleBarStyle: 'hidden',
     // // expose window controls in Windows/Linux
@@ -92,7 +92,7 @@ function createSettingWindow() {
       sandbox: false
     }
   })
-  
+
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
@@ -108,6 +108,7 @@ function createSettingWindow() {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + "#/setting")
   } else {
+    // mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadURL(join(__dirname, '../renderer/index.html') + "#/setting")
   }
 
@@ -144,7 +145,7 @@ app.whenReady().then(() => {
     return "yes"
   })
 
-//获取图片路径
+  //获取图片路径
   ipcMain.handle('getImgPath', async () => {
     const mypath = await dataHandle.getImgPath()
     console.log(mypath)
@@ -163,8 +164,8 @@ app.whenReady().then(() => {
     return res
   })
   //废弃
-  ipcMain.handle('updatelampJTableJson', async (event, jsonData) => {
-    const res = await dataHandle.updatelampJTableJson(jsonData)
+  ipcMain.handle('updateHistoryJson', async (event, jsonData) => {
+    const res = await dataHandle.updateHistoryJson(jsonData)
     // console.log(res)
     return res
   })
@@ -172,17 +173,17 @@ app.whenReady().then(() => {
   const myWindow = createWindow()
   createTray(myWindow)
   //关闭或隐藏窗口
-    ipcMain.handle('closeWin', async () => {
+  ipcMain.handle('closeWin', async () => {
     // app.quit()
-      myWindow.hide()
-      myWindow.setSkipTaskbar(true)
+    myWindow.hide()
+    myWindow.setSkipTaskbar(true)
     // console.log(res)
 
   })
   //更改透明度,主进程直接向渲染进程发送消息
   ipcMain.handle('setTransparentColor', (event, color) => {
     console.log(color)
-    myWindow.webContents.send('sendTransparentColor',color)
+    myWindow.webContents.send('sendTransparentColor', color)
     return "transparent"
   })
   // 动态调整高度
@@ -221,18 +222,18 @@ function createTray(mainWindow: BrowserWindow) {
   const iconPath = path.join(__dirname, '../../resources/icon.png');
   const trayIcon = nativeImage.createFromPath(iconPath);
   let tray = new Tray(trayIcon);
-
+mainWindow.setSkipTaskbar(true) 
   // 托盘菜单
   const contextMenu = Menu.buildFromTemplate([
-    { 
-      label: '显示窗口', 
+    {
+      label: '显示窗口',
       click: () => {
-        mainWindow.show() 
-        mainWindow.setSkipTaskbar(false)
+        mainWindow.show()
+        mainWindow.setSkipTaskbar(true)
       }
     },
-    { 
-      label: '退出', 
+    {
+      label: '退出',
       click: () => {
         // app.isQuitting = true;
         app.quit();
@@ -243,9 +244,9 @@ function createTray(mainWindow: BrowserWindow) {
 
   // 点击托盘图标显示窗口
   tray.on('click', () => {
-        mainWindow.show() 
-        mainWindow.setSkipTaskbar(false)
-      });
+    mainWindow.show()
+    mainWindow.setSkipTaskbar(true)
+  });
 }
 async function saveJson(params: object[]) {
   const { filePath } = await dialog.showSaveDialog({

@@ -111,9 +111,9 @@ export function writeIniJson(jsonData:string){
     }
 }
 
-export function updatelampJTableJson(jsonData:string){
+export function updateHistoryJson(jsonData:string){
     try{
-        fs.writeFileSync(basePath()+'lampJTable.json', jsonData);
+        fs.writeFileSync(basePath()+'history.json', jsonData);
         return "updateOk";
     }catch(err){
         console.error('Error:', err);

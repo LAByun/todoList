@@ -68,16 +68,16 @@
             <transition name="fade">
                 <transition-group name="fade" tag="div" :style="defaultBackgroundColor" class="tasks-container"
                     v-if="showWaitList">
-                    <div style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
+                    <div key="0" style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
                         <span v-if="showSelect">全部待办</span>
                         <span v-else>历史记录</span>
                     </div>
-                    <div v-if="(tasks.length === 0)&showSelect" class="empty-state">
+                    <div key="1" v-if="(tasks.length === 0)&showSelect" class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>暂无任务，添加一个吧~</p>
                     </div>
 
-                    <div class="selectContainerClass" v-if="showSelect">
+                    <div key="2" class="selectContainerClass" v-if="showSelect">
 
 
                         <div v-for="(task, index) in uncompletedTasks" :key="task.id">
@@ -164,7 +164,7 @@
 
                     </div>
                     <!-- 历史记录 -->
-                    <div class="selectContainerClass historyContainerClass" v-else>
+                    <div key="3" class="selectContainerClass historyContainerClass" v-else>
                         <div v-for="(task, index) in historyTasks" :key="task.id">
                             <div class="todo-card">
                                 <div class="task-row" style="flex: 1;">
@@ -175,7 +175,7 @@
                                 <div>
 
                                     <el-button type="danger" plain size="small"
-                                        @click="removeTask(index, 'uncompletedTasks')" circle>
+                                        @click="removeTask(index, 'historyTasks')" circle>
 
 
                                         <Delete style="width: 15px;" />
@@ -190,10 +190,10 @@
 
                         </div>
                     </div>
-                    <div v-if="tasks.length > 0" class="stats">
+                    <div key="4" v-if="tasks.length > 0" class="stats">
                         已完成 {{ completedCount }} / {{ tasks.length }}
                     </div>
-                    <div style="display: flex; justify-content: flex-end; position: relative; right: 10px;">
+                    <div key="5" style="display: flex; justify-content: flex-end; position: relative; right: 10px;">
                         <el-button size="small" class="mainButton mainColor" @click="changeSelectShow">
                             <Clock v-if="showSelect" style="width: 20px;" />
                             <Back v-else style="width: 20px;" />
@@ -215,6 +215,8 @@
 import { Clock, History, LogOut } from 'lucide-vue-next';
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
 import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, CloseBold, Back } from '@element-plus/icons-vue'
+import axios from 'axios';
+import { ElFormItem } from 'element-plus';
 
 
 const showAddBlock = ref(false)
@@ -308,7 +310,8 @@ const removeTask = (index, source) => {
 
 
     }
-    else {
+    else if(source==='completedTasks') {
+
         const task = completedTasks.value[index]
         console.log(task)
         if (task.indexG) {
@@ -321,6 +324,8 @@ const removeTask = (index, source) => {
                 }
             }
         }
+    }else if(source==='historyTasks') {
+        historyTasks.value.splice(index, 1)
     }
     saveTasks();
 };
@@ -336,16 +341,22 @@ const saveTasks = () => {
     console.log(allHistory)
     console.log(historyTasks.value)
 
-
-
-    localStorage.setItem('vue3-todo-tasks-history', JSON.stringify(allHistory));
+    window.electronAPI.updateHistoryJson(JSON.stringify(allHistory))
+    // localStorage.setItem('vue3-todo-tasks-history', JSON.stringify(allHistory));
 };
 
-const loadTasks = () => {
+const loadTasks =async () => {
     const savedTasks = localStorage.getItem('vue3-todo-tasks');
-    const myHistory=localStorage.getItem('vue3-todo-tasks-history')
+    
+    // 使用promise必须使用async，等待同步获取数据
+    const myHistory=await axios.get("history.json")
+
+    // console.log("mytest:",myHistory.data)
+
+    // console.log("myHistory",myHistory)
+
     if (savedTasks) {
-        console.log(myHistory)
+        
         const tasksTest = JSON.parse(savedTasks);
         tasks.value=Object.values(tasksTest)
         console.log(tasks.value)
@@ -353,9 +364,10 @@ const loadTasks = () => {
         
     }
     if(myHistory){
-        const historyTest=JSON.parse(myHistory)
-        historyTasks.value=Object.values(historyTest)
-        console.log(historyTasks.value)
+
+        historyTasks.value=myHistory.data
+        console.log("history",historyTasks.value)
+    
     }
 };
 const updateHeight = () => {
@@ -368,7 +380,7 @@ const changeTransparetColor = (transparetColor) => {
     defaultBackgroundColor.value = {
         backgroundColor: `hsl(0, 3%, 94%,${transparetColor})`
     }
-    localStorage.setItem('vue3-todo-transparentColor', JSON.stringify(transparetColor));
+    localStorage.setItem('vue3-todo-transparentColor', transparetColor);
 }
 
 onMounted(() => {
@@ -380,7 +392,7 @@ onMounted(() => {
     if (localStorage.getItem('vue3-todo-transparentColor')) {
         changeTransparetColor(localStorage.getItem('vue3-todo-transparentColor'))
     } else {
-        changeTransparetColor(1)
+        changeTransparetColor("1")
     }
     console.log(localStorage.getItem('vue3-todo-transparentColor'))
 
@@ -410,6 +422,10 @@ onMounted(() => {
     resizeObserver.observe(document.getElementsByClassName('todo-app')[0]);
     // window.addEventListener('resize', updateHeight);
 });
+onUnmounted(()=>{
+    resizeObserver.disconnect()
+    saveTasks()
+})
 
 //写一个函数，获取当前窗口高度
 const getWindowHeight = () => {

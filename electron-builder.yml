@@ -1,6 +1,7 @@
 appId: com.electron.todoList
 productName: todoList
 executableName: todoList
+asar: false
 directories:
   buildResources: build
 files:
