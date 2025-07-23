@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, nativeImage, Menu } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, nativeImage, Menu ,screen} from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import path from 'path'
@@ -7,7 +7,12 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setExcel } from './excelHandle'
 import * as dataHandle from './dataHandle'
-function createWindow() {
+  // 磁吸效果参数
+  const SNAP_MARGIN_X = 80;   // 左右吸附距离
+  const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更大，更不敏感）
+  const SNAP_DELAY = 100;     // 防抖延迟(ms)
+  let snapTimeout: NodeJS.Timeout | null = null;
+  function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 490,
@@ -44,6 +49,68 @@ function createWindow() {
       sandbox: false
     }
   })
+  let isSnapping = false;
+  
+  // 启用磁吸效果
+  const enableSnapEffect = (win: BrowserWindow) => {
+    win.on('move', () => {
+      if (isSnapping) return;
+      
+      // 防抖处理
+      if (snapTimeout) clearTimeout(snapTimeout);
+      snapTimeout = setTimeout(() => {
+        snapToEdge(win);
+      }, SNAP_DELAY);
+    });
+  };
+
+  // 优化磁吸逻辑
+  const snapToEdge = (win: BrowserWindow) => {
+    const winBounds = win.getBounds();
+    const display = screen.getDisplayNearestPoint(winBounds);
+    const { workArea } = display;
+    
+    // 计算窗口到屏幕各边的距离
+    const toLeft = winBounds.x - workArea.x;
+    const toRight = (workArea.x + workArea.width) - (winBounds.x + winBounds.width);
+    const toTop = winBounds.y - workArea.y;
+    const toBottom = (workArea.y + workArea.height) - (winBounds.y + winBounds.height);
+    
+    // 确定新位置（优先处理左右吸附）
+    let newX = winBounds.x;
+    let newY = winBounds.y;
+    
+    // 1. 优先处理左右吸附
+    if (Math.abs(toLeft) <= SNAP_MARGIN_X) {
+      newX = workArea.x; // 吸附到左边
+    } else if (Math.abs(toRight) <= SNAP_MARGIN_X) {
+      newX = workArea.x + workArea.width - winBounds.width; // 吸附到右边
+    }
+    
+    // 2. 再处理上下吸附（使用更大的吸附距离）
+    if (Math.abs(toTop) <= SNAP_MARGIN_Y) {
+      newY = workArea.y; // 吸附到顶部
+    } else if (Math.abs(toBottom) <= SNAP_MARGIN_Y) {
+      newY = workArea.y + workArea.height - winBounds.height; // 吸附到底部
+    }
+    
+    // 3. 确保窗口完全在屏幕内（重要！）
+    newX = Math.max(workArea.x, Math.min(newX, workArea.x + workArea.width - winBounds.width));
+    newY = Math.max(workArea.y, Math.min(newY, workArea.y + workArea.height - winBounds.height));
+    
+    // 如果位置有变化，则应用新位置
+    if (newX !== winBounds.x || newY !== winBounds.y) {
+      isSnapping = true;
+      win.setPosition(Math.round(newX), Math.round(newY), true);
+      
+      // 重置标志
+      setTimeout(() => isSnapping = false, 100);
+    }
+  };
+
+  // 应用磁吸效果
+  enableSnapEffect(mainWindow);
+
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

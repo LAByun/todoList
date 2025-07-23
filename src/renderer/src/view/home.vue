@@ -539,7 +539,7 @@ const getWindowHeight = () => {
 }
 
 .container {
-    width: 448px;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
