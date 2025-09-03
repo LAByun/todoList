@@ -7,9 +7,10 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setExcel } from './excelHandle'
 import * as dataHandle from './dataHandle'
+const { default: installExtension, VUEJS_DEVTOOLS } = require('electron-devtools-installer');
   // 磁吸效果参数
   const SNAP_MARGIN_X = 80;   // 左右吸附距离
-  const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更大，更不敏感）
+  const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更小，更不敏感）
   const SNAP_DELAY = 100;     // 防抖延迟(ms)
   let snapTimeout: NodeJS.Timeout | null = null;
   function createWindow() {
@@ -87,7 +88,7 @@ import * as dataHandle from './dataHandle'
       newX = workArea.x + workArea.width - winBounds.width; // 吸附到右边
     }
     
-    // 2. 再处理上下吸附（使用更大的吸附距离）
+    // 2. 再处理上下吸附（使用更小的吸附距离）
     if (Math.abs(toTop) <= SNAP_MARGIN_Y) {
       newY = workArea.y; // 吸附到顶部
     } else if (Math.abs(toBottom) <= SNAP_MARGIN_Y) {
@@ -188,6 +189,10 @@ app.setAppUserModelId('com.electron.todoList')
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  //安装 VUE Devtools
+  installExtension(VUEJS_DEVTOOLS)
+        .then((name) => console.log(`已添加扩展: ${name}`))
+        .catch((err) => console.log('安装扩展时出错: ', err));
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron.todoList')
 
@@ -255,8 +260,7 @@ app.whenReady().then(() => {
   })
   // 动态调整高度
   ipcMain.handle('resizeWindow', (event, height) => {
-    console.log(height)
-    myWindow.setContentSize(490, height)
+    myWindow.setContentSize(490, Math.round(Number(height)), true)
   })
   let settingWindow: BrowserWindow;
   ipcMain.handle('getSetting', (event) => {
