@@ -7,7 +7,6 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setExcel } from './excelHandle'
 import * as dataHandle from './dataHandle'
-const { default: installExtension, VUEJS_DEVTOOLS } = require('electron-devtools-installer');
   // 磁吸效果参数
   const SNAP_MARGIN_X = 80;   // 左右吸附距离
   const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更小，更不敏感）
@@ -189,10 +188,6 @@ app.setAppUserModelId('com.electron.todoList')
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  //安装 VUE Devtools
-  installExtension(VUEJS_DEVTOOLS)
-        .then((name) => console.log(`已添加扩展: ${name}`))
-        .catch((err) => console.log('安装扩展时出错: ', err));
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron.todoList')
 
