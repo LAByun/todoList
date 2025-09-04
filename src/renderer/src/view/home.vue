@@ -68,24 +68,35 @@
             <transition name="fade">
                 <transition-group name="fade" tag="div" :style="defaultBackgroundColor" class="tasks-container"
                     v-if="showWaitList">
-                    <div key="0" style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
+                    <div key="0"
+                        style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
                         <span v-if="showSelect">全部待办</span>
                         <span v-else>历史记录</span>
                     </div>
-                    <div key="1" v-if="(tasks.length === 0)&showSelect" class="empty-state">
+                    <div key="1" v-if="(tasks.length === 0) & showSelect" class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>暂无任务，添加一个吧~</p>
                     </div>
 
                     <div key="2" class="selectContainerClass" v-if="showSelect">
+                        <div>aa</div>
+                        <draggable v-model="uncompletedTasks" item-key="id">
+                            <template #item="{ element }">
+                                <div class="list-item">{{ element.text }}</div>
+                            </template>
 
 
+
+
+
+                        </draggable>
                         <div v-for="(task, index) in uncompletedTasks" :key="task.id">
                             <div class="todo-card">
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task)">{{ task.text }}</span>
+                                        @click="setTask(task)">{{ task.text
+                                        }}</span>
                                 </div>
                                 <div>
                                     <el-button type="primary" plain size="small"
@@ -126,7 +137,8 @@
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task)">{{ task.text }}</span>
+                                        @click="setTask(task)">{{ task.text
+                                        }}</span>
                                 </div>
                                 <div>
                                     <el-button type="primary" plain size="small"
@@ -170,7 +182,7 @@
                                 <div class="task-row" style="flex: 1;">
                                     <!-- <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox> -->
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;">{{ task.text
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div>
 
@@ -217,6 +229,7 @@ import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
 import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, CloseBold, Back } from '@element-plus/icons-vue'
 import axios from 'axios';
 import { ElFormItem } from 'element-plus';
+import draggable from 'vuedraggable';
 
 
 const showAddBlock = ref(false)
@@ -233,7 +246,7 @@ const setDialogVisible = () => {
 }
 const newTask = ref('');
 const tasks = ref([]);
-const historyTasks=ref([])
+const historyTasks = ref([])
 
 const changeTask = (index, source) => {
     if (source === 'uncompletedTasks') {
@@ -310,7 +323,7 @@ const removeTask = (index, source) => {
 
 
     }
-    else if(source==='completedTasks') {
+    else if (source === 'completedTasks') {
 
         const task = completedTasks.value[index]
         console.log(task)
@@ -324,7 +337,7 @@ const removeTask = (index, source) => {
                 }
             }
         }
-    }else if(source==='historyTasks') {
+    } else if (source === 'historyTasks') {
         historyTasks.value.splice(index, 1)
     }
     saveTasks();
@@ -333,11 +346,11 @@ const removeTask = (index, source) => {
 const saveTasks = () => {
     localStorage.setItem('vue3-todo-tasks', JSON.stringify(uncompletedTasks.value));
     //合并completedTasks与history的json内容
-    const allHistory=historyTasks.value.concat(completedTasks.value)
+    const allHistory = historyTasks.value.concat(completedTasks.value)
     // ES6语法
     //   const allHistory=[...historyTasks.value,...completedTasks.value]
 
-    
+
     console.log(allHistory)
     console.log(historyTasks.value)
 
@@ -345,29 +358,29 @@ const saveTasks = () => {
     // localStorage.setItem('vue3-todo-tasks-history', JSON.stringify(allHistory));
 };
 
-const loadTasks =async () => {
+const loadTasks = async () => {
     const savedTasks = localStorage.getItem('vue3-todo-tasks');
-    
+
     // 使用promise必须使用async，等待同步获取数据
-    const myHistory=await axios.get("history.json")
+    const myHistory = await axios.get("history.json")
 
     // console.log("mytest:",myHistory.data)
 
     // console.log("myHistory",myHistory)
 
     if (savedTasks) {
-        
+
         const tasksTest = JSON.parse(savedTasks);
-        tasks.value=Object.values(tasksTest)
+        tasks.value = Object.values(tasksTest)
         console.log(tasks.value)
 
-        
-    }
-    if(myHistory){
 
-        historyTasks.value=myHistory.data
-        console.log("history",historyTasks.value)
-    
+    }
+    if (myHistory) {
+
+        historyTasks.value = myHistory.data
+        console.log("history", historyTasks.value)
+
     }
 };
 const updateHeight = () => {
@@ -422,7 +435,7 @@ onMounted(() => {
     resizeObserver.observe(document.getElementsByClassName('todo-app')[0]);
     // window.addEventListener('resize', updateHeight);
 });
-onUnmounted(()=>{
+onUnmounted(() => {
     resizeObserver.disconnect()
     saveTasks()
 })
