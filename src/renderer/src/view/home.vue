@@ -68,11 +68,12 @@
             <transition name="fade">
                 <transition-group name="fade" tag="div" :style="defaultBackgroundColor" class="tasks-container"
                     v-if="showWaitList">
-                    <div key="0" style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
+                    <div key="0"
+                        style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
                         <span v-if="showSelect">全部待办</span>
                         <span v-else>历史记录</span>
                     </div>
-                    <div key="1" v-if="(tasks.length === 0)&showSelect" class="empty-state">
+                    <div key="1" v-if="(uncompletedTasks.length+completedTasks.length === 0) & showSelect" class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>暂无任务，添加一个吧~</p>
                     </div>
@@ -80,53 +81,47 @@
                     <div key="2" class="selectContainerClass" v-if="showSelect">
 
 
-                        <div v-for="(task, index) in uncompletedTasks" :key="task.id">
-                            <div class="todo-card">
-                                <div class="task-row" style="flex: 1;">
-                                    <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
-                                    <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task)">{{ task.text }}</span>
-                                </div>
-                                <div>
-                                    <el-button type="primary" plain size="small"
-                                        @click="changeTask(index, 'uncompletedTasks')" circle>
-
-
-                                        <Edit v-if="!task.editAble" style="width: 15px;" />
-                                        <Right v-else style="width: 15px;" />
-                                    </el-button>
-                                    <el-button type="danger" plain size="small"
-                                        @click="removeTask(index, 'uncompletedTasks')" circle>
-
-
-                                        <Delete style="width: 15px;" />
-                                    </el-button>
-
-
-                                </div>
-
-                            </div>
-                            <div>
-
-                                <Transition name="fade">
-                                    <div v-if="task.editAble" style="position: relative;left: 10px;">
-                                        <el-input v-model="task.text" class="inputSet" type="textarea"
-                                            placeholder="输入新任务..."></el-input>
-
+                        <draggable :list="uncompletedTasks" item-key="id" tag="div" @end="onDragEnd"
+                            ghost-class="ghost-card" chosen-class="chosen-card" animation="200">
+                            <template #item="{ element: task }">
+                                <div> <!-- 每个任务的容器 -->
+                                    <div class="todo-card">
+                                        <div class="task-row" style="flex: 1;">
+                                                                   <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
+                                            <span :class="{ 'completed': task.completed }" style="flex: 1;"
+                                                @click="setTask(task,task.id)">{{ task.text }}</span>
+                                        </div>
+                                        <div>
+                                            <el-button type="primary" plain size="small"
+                                                @click="changeTask(task.id, 'uncompletedTasks')" circle>
+                                                <Edit v-if="!task.editAble" style="width: 15px;" />
+                                                <Right v-else style="width: 15px;" />
+                                            </el-button>
+                                            <el-button type="danger" plain size="small"
+                                                @click="removeTask(task.id, 'uncompletedTasks')" circle>
+                                                <Delete style="width: 15px;" />
+                                            </el-button>
+                                        </div>
                                     </div>
-
-                                </Transition>
-                            </div>
-
-
-                        </div>
+                                    <div>
+                                        <Transition name="fade">
+                                            <div v-if="task.editAble" style="position: relative;left: 10px;">
+                                                <el-input v-model="task.text" class="inputSet" type="textarea"
+                                                    placeholder="输入新任务..."></el-input>
+                                            </div>
+                                        </Transition>
+                                    </div>
+                                </div>
+                            </template>
+                        </draggable>
                         <!-- 去除的任务清单 -->
                         <div v-for="(task, index) in completedTasks" :key="task.id">
                             <div class="todo-card">
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task)">{{ task.text }}</span>
+                                        @click="setTask(task,index)">{{ task.text
+                                        }}</span>
                                 </div>
                                 <div>
                                     <el-button type="primary" plain size="small"
@@ -170,7 +165,7 @@
                                 <div class="task-row" style="flex: 1;">
                                     <!-- <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox> -->
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;">{{ task.text
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div>
 
@@ -190,8 +185,8 @@
 
                         </div>
                     </div>
-                    <div key="4" v-if="tasks.length > 0" class="stats">
-                        已完成 {{ completedCount }} / {{ tasks.length }}
+                    <div key="4" v-if="uncompletedTasks.length+completedTasks.length> 0" class="stats">
+                        已完成 {{ completedTasks.length }} / {{ uncompletedTasks.length+completedTasks.length }}
                     </div>
                     <div key="5" style="display: flex; justify-content: flex-end; position: relative; right: 10px;">
                         <el-button size="small" class="mainButton mainColor" @click="changeSelectShow">
@@ -213,10 +208,11 @@
 
 <script setup>
 import { Clock, History, LogOut } from 'lucide-vue-next';
-import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
+import { defineComponent, ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from 'vue';
 import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, CloseBold, Back } from '@element-plus/icons-vue'
 import axios from 'axios';
 import { ElFormItem } from 'element-plus';
+import draggable from 'vuedraggable'
 
 
 const showAddBlock = ref(false)
@@ -233,12 +229,18 @@ const setDialogVisible = () => {
 }
 const newTask = ref('');
 const tasks = ref([]);
-const historyTasks=ref([])
+const uncompletedTasks = ref([]);
+const completedTasks = ref([]);
+const historyTasks = ref([])
 
 const changeTask = (index, source) => {
     if (source === 'uncompletedTasks') {
-        let task = uncompletedTasks.value[index];
-        task.editAble = !task.editAble;
+        for(let i=0;i<uncompletedTasks.value.length;i++){
+            if(uncompletedTasks.value[i].id==index){
+                let task = uncompletedTasks.value[i];
+                task.editAble = !task.editAble;
+            }
+        }
     }
     else {
         let task = completedTasks.value[index];
@@ -247,14 +249,14 @@ const changeTask = (index, source) => {
 
 
 }
-//使用computed过滤完成的任务
-const completedTasks = computed(() => {
-    return tasks.value.filter(task => task.completed);
-});
-//使用computed过滤未完成的任务
-const uncompletedTasks = computed(() => {
-    return tasks.value.filter(task => !task.completed);
-});
+//使用computed过滤完成的任务,曾经的完成实现形式
+// const completedTasks = computed(() => {
+//     return tasks.value.filter(task => task.completed);
+// });
+//使用computed过滤未完成的任务,曾经的未完成实现形式
+// const uncompletedTasks = computed(() => {
+//     return tasks.value.filter(task => !task.completed);
+// });
 
 //缩略到小任务栏里
 const quitAll = async () => {
@@ -264,10 +266,38 @@ const completedCount = computed(() => {
     return tasks.value.filter(task => task.completed).length;
 });
 //文字被点击
-const setTask = (task) => {
-    task.completed = !task.completed
-    saveTasks()
+const setTask = (task,index) => {
+    console.log("task:",index,"被点击了")
+    console.log(task)
+    if (task.completed) {
+        console.log(index)
+        task.completed=!task.completed
+        const copyTask=JSON.parse(JSON.stringify(task))
+        for(let i=0;i<completedTasks.value.length;i++){
+            if(completedTasks.value[i].id==task.id){
+                completedTasks.value.splice(i,1)
+            }
+        }
+        uncompletedTasks.value.push(copyTask)
+        console.log(uncompletedTasks.value)
+        console.log(completedTasks.value)
+    }
+    else {
+        console.log(index)
+        task.completed=!task.completed
+        const copyTask=JSON.parse(JSON.stringify(task))
 
+        for(let i=0;i<uncompletedTasks.value.length;i++){
+            if(uncompletedTasks.value[i].id==task.id){
+                uncompletedTasks.value.splice(i,1)
+            }
+        }
+        completedTasks.value.push(copyTask)
+        console.log(uncompletedTasks.value)
+        console.log(completedTasks.value)
+    }
+
+    saveTasks()
 }
 const showAddBlockFn = () => {
     showAddBlock.value = !showAddBlock.value
@@ -277,7 +307,7 @@ const showWaitListFn = () => {
 }
 const addTask = () => {
     if (newTask.value.trim()) {
-        tasks.value.push({
+        uncompletedTasks.value.push({
             id: Date.now(),
             text: newTask.value.trim(),
             completed: false,
@@ -285,95 +315,78 @@ const addTask = () => {
             indexG: tasks.value.length
         });
         newTask.value = '';
-        console.log(tasks.value)
+  
         saveTasks();
     }
 };
 
 const removeTask = (index, source) => {
+    console.log("removeTask")
+    console.log(index)
     console.log(source)
     if (source === 'uncompletedTasks') {
-        // uncompletedTasks.value.splice(index, 1);
-        const task = uncompletedTasks.value[index]
-        console.log(task)
-        if (task.indexG) {
-            tasks.value.splice(task.indexG, 1)
-        } else {
-            for (let i = 0; i < tasks.value.length; i++) {
-                console.log(task)
-                if (tasks.value[i]['id'] === task['id']) {
-                    tasks.value.splice(i, 1)
-                    // console.log
-                }
+        // const task = uncompletedTasks.value[index]
+        for(let i=0;i<uncompletedTasks.value.length;i++){
+            if(uncompletedTasks.value[i].id==index){
+                uncompletedTasks.value.splice(i, 1)
             }
         }
-
+       
 
     }
-    else if(source==='completedTasks') {
+    else if (source === 'completedTasks') {
+        completedTasks.value.splice(index, 1)
 
-        const task = completedTasks.value[index]
-        console.log(task)
-        if (task.indexG) {
-            tasks.value.splice(task.indexG, 1)
-        } else {
-            for (let i = 0; i < tasks.value.length; i++) {
-                if (tasks.value[i]['id'] === task['id']) {
-                    tasks.value.splice(i, 1)
-                    // console.log
-                }
-            }
-        }
-    }else if(source==='historyTasks') {
+    } else if (source === 'historyTasks') {
         historyTasks.value.splice(index, 1)
     }
     saveTasks();
 };
 
 const saveTasks = () => {
+    // console.log("保存数据中...")
+    // console.log(uncompletedTasks.value)
     localStorage.setItem('vue3-todo-tasks', JSON.stringify(uncompletedTasks.value));
     //合并completedTasks与history的json内容
-    const allHistory=historyTasks.value.concat(completedTasks.value)
+    const allHistory = historyTasks.value.concat(completedTasks.value)
     // ES6语法
     //   const allHistory=[...historyTasks.value,...completedTasks.value]
-
-    
-    console.log(allHistory)
-    console.log(historyTasks.value)
 
     window.electronAPI.updateHistoryJson(JSON.stringify(allHistory))
     // localStorage.setItem('vue3-todo-tasks-history', JSON.stringify(allHistory));
 };
-
-const loadTasks =async () => {
+const onDragEnd = () => {
+    saveTasks()
+}
+const loadTasks = async () => {
     const savedTasks = localStorage.getItem('vue3-todo-tasks');
-    
+
     // 使用promise必须使用async，等待同步获取数据
-    const myHistory=await axios.get("history.json")
+    const myHistory = await axios.get("history.json")
 
     // console.log("mytest:",myHistory.data)
 
     // console.log("myHistory",myHistory)
 
     if (savedTasks) {
-        
         const tasksTest = JSON.parse(savedTasks);
-        tasks.value=Object.values(tasksTest)
-        console.log(tasks.value)
-
-        
+        tasks.value = Object.values(tasksTest)
+        const myUncompletedTasks = tasks.value.filter(task => !task.completed);
+        const copyDeepMyUncompetedTasks = JSON.parse(JSON.stringify(myUncompletedTasks));
+        uncompletedTasks.value = copyDeepMyUncompetedTasks;
+        const myCompletedTasks = tasks.value.filter(task => task.completed);
+        const copyDeepMyCompletedTasks = JSON.parse(JSON.stringify(myCompletedTasks));
+        completedTasks.value = copyDeepMyCompletedTasks;
     }
-    if(myHistory){
+    if (myHistory) {
 
-        historyTasks.value=myHistory.data
-        console.log("history",historyTasks.value)
-    
+        historyTasks.value = myHistory.data
+        console.log("history", historyTasks.value)
+
     }
 };
 const updateHeight = () => {
     const height = document.body.clientHeight;
-    console.log(height)
-
     window.electronAPI.resizeWindow(height)
 };
 const changeTransparetColor = (transparetColor) => {
@@ -382,8 +395,17 @@ const changeTransparetColor = (transparetColor) => {
     }
     localStorage.setItem('vue3-todo-transparentColor', transparetColor);
 }
+const handleKeydown = (event) => {
+    if (event.key === 'Escape' && showAddBlock.value === true) {
+        showAddBlock.value = false
+    } else if (event.key === 'Escape' && showAddBlock.value === false) {
+        quitAll()
+    }
+}
+onMounted(async () => {
+    //挂载键盘ESC监听
+    window.addEventListener('keydown', handleKeydown);
 
-onMounted(() => {
     // let transparetColor=0.9;
     // defaultBackgroundColor.value={
     //       backgroundColor: `hsl(0, 3%, 94%,${transparetColor})`
@@ -394,39 +416,40 @@ onMounted(() => {
     } else {
         changeTransparetColor("1")
     }
+    console.log("透明度")
     console.log(localStorage.getItem('vue3-todo-transparentColor'))
 
     // changeTransparetColor(localStorage.getItem('vue3-todo-transparentColor')? localStorage.getItem('vue3-todo-transparentColor'):transparetColor)
     //监听透明样式变更
     window.electronAPI.sendTransparentColor((color) => {
+        console.log("监听透明度变更")
         console.log(color)
-
         changeTransparetColor(color)
     })
 
 
     //加载任务到列表
-    loadTasks();
+    await loadTasks();
     //监听容器大小变更
     const resizeObserver = new ResizeObserver(entries => {
         const entry = entries[0];
         if (entry) {
             const contentHeight = entry.contentRect.height;
-            // window.ipcRenderer.send('resize-window', contentHeight);
-            console.log(contentHeight)
             window.electronAPI.resizeWindow(contentHeight + 20)
         }
     });
 
     // 监听目标容器（如 #app）
     resizeObserver.observe(document.getElementsByClassName('todo-app')[0]);
-    // window.addEventListener('resize', updateHeight);
 });
-onUnmounted(()=>{
+onUnmounted(() => {
     resizeObserver.disconnect()
     saveTasks()
 })
-
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeydown)
+    saveTasks()
+})
 //写一个函数，获取当前窗口高度
 const getWindowHeight = () => {
     return window.innerHeight;
@@ -539,7 +562,7 @@ const getWindowHeight = () => {
 }
 
 .container {
-    width: 448px;
+    width: 449px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -618,7 +641,7 @@ const getWindowHeight = () => {
 }
 
 .todo-card:hover {
-    background-color: rgb(230, 230, 230);
+    background-color: rgb(255, 255, 255);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
