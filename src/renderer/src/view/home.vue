@@ -1,7 +1,7 @@
 <template>
     <div class="todo-app">
         <div class="container">
-            <div class="title" :style="defaultBackgroundColor" style="app-region: drag;">
+            <div class="title" :style="{ ...defaultBackgroundColor, appRegion: 'drag' }">
                 <div style="display: flex; align-items: center; position: relative;left: 20px;">
                     <List style="width: 30px; margin-right: 10px;" class="mainColor" />
                     <span class="showWaitListClass" style="app-region:no-drag;" @click="showWaitListFn">待办内容</span>
@@ -26,11 +26,7 @@
                         </el-button>
                     </div>
                 </div>
-
-
             </div>
-
-
             <transition name="fade">
                 <div class="input-container" :style="defaultBackgroundColor" v-if="showAddBlock">
                     <div class="flex-input">
@@ -40,7 +36,6 @@
                                 添加新待办
                             </div>
                             <div>
-
                                 <el-button type="primary" class="mainButton mainColor" @click="addTask"
                                     :disabled="!newTask.trim()">
                                     <Select style="width: 20px;" />
@@ -57,7 +52,7 @@
                                 <span>请输入待办内容</span>
                             </div>
                             <el-input class="inputSet" type="textarea" v-model="newTask" placeholder="输入新任务..."
-                                @keyup.enter="addTask"></el-input>
+                                @keyup.enter="addTask" ref="taskInput"></el-input>
                         </div>
                         <!-- <el-button type="primary" @click="addTask" :disabled="!newTask.trim()">
                         <i class="fas fa-plus"></i>添加
@@ -208,7 +203,7 @@
 
 <script setup>
 import { Clock, History, LogOut } from 'lucide-vue-next';
-import { defineComponent, ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from 'vue';
+import { defineComponent, ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, CloseBold, Back } from '@element-plus/icons-vue'
 import axios from 'axios';
 import { ElFormItem } from 'element-plus';
@@ -219,6 +214,7 @@ const showAddBlock = ref(false)
 const showWaitList = ref(true)
 const showSelect = ref(true)
 const defaultBackgroundColor = ref({})
+const taskInput = ref(null)
 
 const changeSelectShow = () => {
     showSelect.value = !showSelect.value
@@ -299,8 +295,14 @@ const setTask = (task,index) => {
 
     saveTasks()
 }
-const showAddBlockFn = () => {
+const showAddBlockFn = async () => {
     showAddBlock.value = !showAddBlock.value
+    // 使用 nextTick 确保 DOM 更新完成
+    await nextTick();
+    // 在 DOM 更新后，检查条件并聚焦
+    if (showAddBlock.value && taskInput.value) {
+      taskInput.value.focus();
+    }
 }
 const showWaitListFn = () => {
     showWaitList.value = !showWaitList.value
