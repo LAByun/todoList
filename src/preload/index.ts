@@ -28,8 +28,8 @@ if (process.contextIsolated) {
       changeImg:(imgPath,oldPath)=>{
         return ipcRenderer.invoke('changeImg',imgPath,oldPath)
       },
-      updateHistoryJson:(jsonData)=>{
-        return ipcRenderer.invoke('updateHistoryJson',jsonData)
+      updateAllTasksJson:(jsonData)=>{
+        return ipcRenderer.invoke('updateAllTasksJson',jsonData)
       },
       closeWin:()=>{
         return ipcRenderer.invoke('closeWin')

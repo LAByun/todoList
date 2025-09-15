@@ -111,9 +111,9 @@ export function writeIniJson(jsonData:string){
     }
 }
 
-export function updateHistoryJson(jsonData:string){
+export function updateAllTasksJson(jsonData:string){
     try{
-        fs.writeFileSync(basePath()+'history.json', jsonData);
+        fs.writeFileSync(basePath()+'AllTasks.json', jsonData);
         return "updateOk";
     }catch(err){
         console.error('Error:', err);

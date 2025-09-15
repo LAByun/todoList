@@ -22,6 +22,14 @@
           </div>
           <el-switch v-model="settings.autoStart" active-color="#3b82f6"></el-switch>
         </div>
+        <!-- 导出数据 -->
+        <div class="setting-item">
+          <div class="setting-description">
+            <h3 class="setting-name">导出数据</h3>
+            <p class="setting-hint">将当前待办数据全部导出</p>
+          </div>
+          <el-button @click="saveJson" type="primary">导出</el-button>
+        </div>
         
         <!-- 用户名 -->
         <div class="setting-item">
@@ -176,6 +184,32 @@ const loadSettings = () => {
     }
   }
 };
+
+async function exportJson() {
+  try {
+    // 调用预加载脚本暴露的 exportJson 方法
+    const result = await window.electronAPI.exportJson(
+      {
+        todos: [
+          { id: 1, task: '示例任务 1', completed: false },
+          { id: 2, task: '示例任务 2', completed: true }
+        ]
+      }
+      );
+    
+    if (result.success) {
+      console.log('文件保存成功！路径：', result.path);
+      alert(`导出成功！文件已保存至：${result.path}`);
+    } else {
+      console.log('保存失败：', result.message);
+      if (result.message !== '用户取消了保存操作') {
+        alert(`导出失败：${result.message}`);
+      }
+    }
+  } catch (error) {
+    console.error('调用保存 API 时发生错误:', error);
+  }
+}
 
 // 保存设置到本地存储
 const saveSettings = () => {

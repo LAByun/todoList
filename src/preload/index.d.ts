@@ -10,7 +10,7 @@ declare global {
       getImgPath:()=>Promise<string>
       saveImg: (imgPath:string)=>Promise<string>
       changeImg: (imgPath:string,oldPath:string)=>Promise<string>
-      updateHistoryJson:(jsonData:string)=>Promise<string>
+      updateAllTasksJson:(jsonData:string)=>Promise<string>
       closeWin:()=>Promise<string>
       resizeWindow:(height:number)=>Promise<string>
       getSetting:()=>Promise<string>

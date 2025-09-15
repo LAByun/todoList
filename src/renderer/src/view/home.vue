@@ -115,19 +115,19 @@
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task,index)">{{ task.text
+                                        @click="setTask(task,task.id)">{{ task.text
                                         }}</span>
                                 </div>
                                 <div>
                                     <el-button type="primary" plain size="small"
-                                        @click="changeTask(index, 'completedTasks')" circle>
+                                        @click="changeTask(task.id, 'completedTasks')" circle>
 
 
                                         <Edit v-if="!task.editAble" style="width: 15px;" />
                                         <Right v-else style="width: 15px;" />
                                     </el-button>
                                     <el-button type="danger" plain size="small"
-                                        @click="removeTask(index, 'completedTasks')" circle>
+                                        @click="removeTask(task.id, 'completedTasks')" circle>
 
 
                                         <Delete style="width: 15px;" />
@@ -165,7 +165,7 @@
                                 <div>
 
                                     <el-button type="danger" plain size="small"
-                                        @click="removeTask(index, 'historyTasks')" circle>
+                                        @click="removeTask(task.id, 'historyTasks')" circle>
 
 
                                         <Delete style="width: 15px;" />
@@ -205,7 +205,7 @@
 import { Clock, History, LogOut } from 'lucide-vue-next';
 import { defineComponent, ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, CloseBold, Back } from '@element-plus/icons-vue'
-import axios from 'axios';
+import axios, { all } from 'axios';
 import { ElFormItem } from 'element-plus';
 import draggable from 'vuedraggable'
 
@@ -223,76 +223,49 @@ const changeSelectShow = () => {
 const setDialogVisible = () => {
     window.electronAPI.getSetting()
 }
-const newTask = ref('');
-const tasks = ref([]);
-const uncompletedTasks = ref([]);
-const completedTasks = ref([]);
+const newTask = ref('')
+const uncompletedTasks = ref([])
+const completedTasks = ref([])
 const historyTasks = ref([])
 
-const changeTask = (index, source) => {
+const changeTask = (id, source) => {
     if (source === 'uncompletedTasks') {
         for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==index){
-                let task = uncompletedTasks.value[i];
-                task.editAble = !task.editAble;
+            if(uncompletedTasks.value[i].id==id){
+                uncompletedTasks.value[i].editAble = !uncompletedTasks.value[i].editAble
             }
         }
     }
     else {
-        let task = completedTasks.value[index];
-        task.editAble = !task.editAble;
+        for(let i=0;i<completedTasks.value.length;i++){
+            if(completedTasks.value[i].id==id){e
+                completedTasks.value[i].editAble = !completedTasks.value[i].editAble
+            }
+        }
     }
-
-
+    saveTasks()
 }
-//使用computed过滤完成的任务,曾经的完成实现形式
-// const completedTasks = computed(() => {
-//     return tasks.value.filter(task => task.completed);
-// });
-//使用computed过滤未完成的任务,曾经的未完成实现形式
-// const uncompletedTasks = computed(() => {
-//     return tasks.value.filter(task => !task.completed);
-// });
-
 //缩略到小任务栏里
 const quitAll = async () => {
     await window.electronAPI.closeWin()
 }
-const completedCount = computed(() => {
-    return tasks.value.filter(task => task.completed).length;
-});
 //文字被点击
-const setTask = (task,index) => {
-    console.log("task:",index,"被点击了")
-    console.log(task)
-    if (task.completed) {
-        console.log(index)
-        task.completed=!task.completed
-        const copyTask=JSON.parse(JSON.stringify(task))
-        for(let i=0;i<completedTasks.value.length;i++){
-            if(completedTasks.value[i].id==task.id){
-                completedTasks.value.splice(i,1)
-            }
-        }
-        uncompletedTasks.value.push(copyTask)
-        console.log(uncompletedTasks.value)
-        console.log(completedTasks.value)
-    }
-    else {
-        console.log(index)
-        task.completed=!task.completed
-        const copyTask=JSON.parse(JSON.stringify(task))
+const setTask = (task, id) => {
+    const copyTask = JSON.parse(JSON.stringify(task))
+    copyTask.completed = !task.completed
 
-        for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==task.id){
-                uncompletedTasks.value.splice(i,1)
-            }
-        }
-        completedTasks.value.push(copyTask)
-        console.log(uncompletedTasks.value)
-        console.log(completedTasks.value)
+    // 根据当前状态确定要从哪个数组移除，添加到哪个数组
+    const sourceList = task.completed ? completedTasks.value : uncompletedTasks.value
+    const targetList = task.completed ? uncompletedTasks.value : completedTasks.value
+
+    // 在源数组中查找索引并移除
+    const indexToRemove = sourceList.findIndex(item => item.id == id)
+    if (indexToRemove !== -1) {
+        sourceList.splice(indexToRemove, 1)
     }
 
+    // 将任务添加到目标数组
+    targetList.push(copyTask)
     saveTasks()
 }
 const showAddBlockFn = async () => {
@@ -314,79 +287,93 @@ const addTask = () => {
             text: newTask.value.trim(),
             completed: false,
             editAble: false,
-            indexG: tasks.value.length
         });
         newTask.value = '';
   
         saveTasks();
     }
-};
+}
 
-const removeTask = (index, source) => {
+const removeTask = (id, source) => {
     console.log("removeTask")
-    console.log(index)
+    console.log(id)
     console.log(source)
     if (source === 'uncompletedTasks') {
-        // const task = uncompletedTasks.value[index]
-        for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==index){
-                uncompletedTasks.value.splice(i, 1)
-            }
+        let idToRemove = uncompletedTasks.value.findIndex(item=>item.id==id)
+        if(idToRemove!=-1){
+            uncompletedTasks.value.splice(idToRemove, 1)
         }
-       
-
     }
     else if (source === 'completedTasks') {
-        completedTasks.value.splice(index, 1)
+        let idToRemove = completedTasks.value.findIndex(item=>item.id==id)
+        if(idToRemove!=-1){
+            completedTasks.value.splice(idToRemove, 1)
+        }
 
     } else if (source === 'historyTasks') {
-        historyTasks.value.splice(index, 1)
+        let idToRemove = historyTasks.value.findIndex(item=>item.id==id)
+        if(idToRemove!=-1){
+            historyTasks.value.splice(idToRemove, 1)
+        }
     }
-    saveTasks();
-};
+    saveTasks()
+}
 
 const saveTasks = () => {
-    // console.log("保存数据中...")
-    // console.log(uncompletedTasks.value)
-    localStorage.setItem('vue3-todo-tasks', JSON.stringify(uncompletedTasks.value));
     //合并completedTasks与history的json内容
     const allHistory = historyTasks.value.concat(completedTasks.value)
-    // ES6语法
-    //   const allHistory=[...historyTasks.value,...completedTasks.value]
+    //持久化的JSON文件中保存的只有两个列表，一个保存的是未完成的任务，一个保存的是历史任务
+    const allTasks = {
+        uncompletedTasks: uncompletedTasks.value,
+        historyTasks: allHistory
+    }
+    //默认所有所有数据存储在localStorage中,5MB内容足够存储所有数据
+    localStorage.setItem('vue3-todo-tasks', JSON.stringify(allTasks));
+    // window.electronAPI.updateAllTasksJson(JSON.stringify(allTasks))
+    
+}
+const loadTasks = async () => {
+    // const allTasks = await axios.get("allTasks.json")
+    let allTasks = {}
+    try{
+        const rawAllTasks = localStorage.getItem('vue3-todo-tasks')
+        allTasks = JSON.parse(rawAllTasks)
+    }catch{
+        allTasks = {
+            uncompletedTasks: [],
+            historyTasks: []
+        }
+        print("错误: 读取本地存储的任务数据失败，已初始化为空列表")
+    }
+    uncompletedTasks.value = allTasks.uncompletedTasks? allTasks.uncompletedTasks :[]
+    historyTasks.value = allTasks.historyTasks? allTasks.historyTasks :[]
+    console.log("已加载本地存储的任务数据")
+    console.log("待完成任务:",uncompletedTasks.value)
+    console.log("历史任务:",historyTasks.value)
 
-    window.electronAPI.updateHistoryJson(JSON.stringify(allHistory))
-    // localStorage.setItem('vue3-todo-tasks-history', JSON.stringify(allHistory));
+
+
+
+    // if (savedTasks) {
+    //     const tasksTest = JSON.parse(savedTasks);
+    //     tasks.value = Object.values(tasksTest)
+    //     const myUncompletedTasks = tasks.value.filter(task => !task.completed);
+    //     const copyDeepMyUncompetedTasks = JSON.parse(JSON.stringify(myUncompletedTasks));
+    //     uncompletedTasks.value = copyDeepMyUncompetedTasks;
+    //     const myCompletedTasks = tasks.value.filter(task => task.completed);
+    //     const copyDeepMyCompletedTasks = JSON.parse(JSON.stringify(myCompletedTasks));
+    //     completedTasks.value = copyDeepMyCompletedTasks;
+    // }
+    // if (myHistory) {
+    //     historyTasks.value = myHistory.data
+    //     console.log("history", historyTasks.value)
+
+    // }
 };
 const onDragEnd = () => {
     saveTasks()
 }
-const loadTasks = async () => {
-    const savedTasks = localStorage.getItem('vue3-todo-tasks');
 
-    // 使用promise必须使用async，等待同步获取数据
-    const myHistory = await axios.get("history.json")
-
-    // console.log("mytest:",myHistory.data)
-
-    // console.log("myHistory",myHistory)
-
-    if (savedTasks) {
-        const tasksTest = JSON.parse(savedTasks);
-        tasks.value = Object.values(tasksTest)
-        const myUncompletedTasks = tasks.value.filter(task => !task.completed);
-        const copyDeepMyUncompetedTasks = JSON.parse(JSON.stringify(myUncompletedTasks));
-        uncompletedTasks.value = copyDeepMyUncompetedTasks;
-        const myCompletedTasks = tasks.value.filter(task => task.completed);
-        const copyDeepMyCompletedTasks = JSON.parse(JSON.stringify(myCompletedTasks));
-        completedTasks.value = copyDeepMyCompletedTasks;
-    }
-    if (myHistory) {
-
-        historyTasks.value = myHistory.data
-        console.log("history", historyTasks.value)
-
-    }
-};
 const updateHeight = () => {
     const height = document.body.clientHeight;
     window.electronAPI.resizeWindow(height)
@@ -444,10 +431,6 @@ onMounted(async () => {
     // 监听目标容器（如 #app）
     resizeObserver.observe(document.getElementsByClassName('todo-app')[0]);
 });
-onUnmounted(() => {
-    resizeObserver.disconnect()
-    saveTasks()
-})
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleKeydown)
     saveTasks()
