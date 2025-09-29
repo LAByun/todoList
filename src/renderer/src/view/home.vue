@@ -62,13 +62,14 @@
             </transition>
             <transition name="fade">
                 <transition-group name="fade" tag="div" :style="defaultBackgroundColor" class="tasks-container"
-                    v-if="showWaitList">
+                    v-if="showWaitList" >
                     <div key="0"
                         style="font-size: 20px;font-weight: 700; padding-left: 30px; border-left: 4px solid #00a2ff;">
                         <span v-if="showSelect">全部待办</span>
                         <span v-else>历史记录</span>
                     </div>
-                    <div key="1" v-if="(uncompletedTasks.length+completedTasks.length === 0) & showSelect" class="empty-state">
+                    <div key="1" v-if="(uncompletedTasks.length + completedTasks.length === 0) && showSelect"
+                        class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>暂无任务，添加一个吧~</p>
                     </div>
@@ -82,9 +83,9 @@
                                 <div> <!-- 每个任务的容器 -->
                                     <div class="todo-card">
                                         <div class="task-row" style="flex: 1;">
-                                                                   <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
+                                            <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                             <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                                @click="setTask(task,task.id)">{{ task.text }}</span>
+                                                @click="setTask(task, task.id)">{{ task.text }}</span>
                                         </div>
                                         <div>
                                             <el-button type="primary" plain size="small"
@@ -102,6 +103,8 @@
                                         <Transition name="fade">
                                             <div v-if="task.editAble" style="position: relative;left: 10px;">
                                                 <el-input v-model="task.text" class="inputSet" type="textarea"
+                                                    ref="taskText"
+                                                    @keyup.enter="changeTask(task.id, 'uncompletedTasks')"
                                                     placeholder="输入新任务..."></el-input>
                                             </div>
                                         </Transition>
@@ -115,8 +118,8 @@
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task,task.id)">{{ task.text
-                                        }}</span>
+                                        @click="setTask(task, task.id)">{{
+                                        task.text}}</span>
                                 </div>
                                 <div>
                                     <el-button type="primary" plain size="small"
@@ -160,7 +163,7 @@
                                 <div class="task-row" style="flex: 1;">
                                     <!-- <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox> -->
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;">{{ task.text
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div>
 
@@ -180,8 +183,8 @@
 
                         </div>
                     </div>
-                    <div key="4" v-if="uncompletedTasks.length+completedTasks.length> 0" class="stats">
-                        已完成 {{ completedTasks.length }} / {{ uncompletedTasks.length+completedTasks.length }}
+                    <div key="4" v-if="!((uncompletedTasks.length + completedTasks.length === 0) && showSelect)" class="stats">
+                        已完成 {{ completedTasks.length }} / {{ uncompletedTasks.length + completedTasks.length }}
                     </div>
                     <div key="5" style="display: flex; justify-content: flex-end; position: relative; right: 10px;">
                         <el-button size="small" class="mainButton mainColor" @click="changeSelectShow">
@@ -215,6 +218,7 @@ const showWaitList = ref(true)
 const showSelect = ref(true)
 const defaultBackgroundColor = ref({})
 const taskInput = ref(null)
+const taskText = ref(null)
 
 const changeSelectShow = () => {
     showSelect.value = !showSelect.value
@@ -228,20 +232,26 @@ const uncompletedTasks = ref([])
 const completedTasks = ref([])
 const historyTasks = ref([])
 
-const changeTask = (id, source) => {
+const changeTask = async (id, source) => {
     if (source === 'uncompletedTasks') {
-        for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==id){
+        for (let i = 0; i < uncompletedTasks.value.length; i++) {
+            if (uncompletedTasks.value[i].id == id) {
                 uncompletedTasks.value[i].editAble = !uncompletedTasks.value[i].editAble
+                uncompletedTasks.value[i].text = uncompletedTasks.value[i].text.replace(/\n/g, '')
             }
         }
     }
     else {
-        for(let i=0;i<completedTasks.value.length;i++){
-            if(completedTasks.value[i].id==id){e
+        for (let i = 0; i < completedTasks.value.length; i++) {
+            if (completedTasks.value[i].id == id) {
                 completedTasks.value[i].editAble = !completedTasks.value[i].editAble
+                completedTasks.value[i].text = completedTasks.value[i].text.replace(/\n/g, '')
             }
         }
+    }
+    await nextTick()
+    if (taskText.value) {
+        taskText.value.focus();
     }
     saveTasks()
 }
@@ -274,7 +284,7 @@ const showAddBlockFn = async () => {
     await nextTick();
     // 在 DOM 更新后，检查条件并聚焦
     if (showAddBlock.value && taskInput.value) {
-      taskInput.value.focus();
+        taskInput.value.focus();
     }
 }
 const showWaitListFn = () => {
@@ -289,7 +299,7 @@ const addTask = () => {
             editAble: false,
         });
         newTask.value = '';
-  
+
         saveTasks();
     }
 }
@@ -299,20 +309,20 @@ const removeTask = (id, source) => {
     console.log(id)
     console.log(source)
     if (source === 'uncompletedTasks') {
-        let idToRemove = uncompletedTasks.value.findIndex(item=>item.id==id)
-        if(idToRemove!=-1){
+        let idToRemove = uncompletedTasks.value.findIndex(item => item.id == id)
+        if (idToRemove != -1) {
             uncompletedTasks.value.splice(idToRemove, 1)
         }
     }
     else if (source === 'completedTasks') {
-        let idToRemove = completedTasks.value.findIndex(item=>item.id==id)
-        if(idToRemove!=-1){
+        let idToRemove = completedTasks.value.findIndex(item => item.id == id)
+        if (idToRemove != -1) {
             completedTasks.value.splice(idToRemove, 1)
         }
 
     } else if (source === 'historyTasks') {
-        let idToRemove = historyTasks.value.findIndex(item=>item.id==id)
-        if(idToRemove!=-1){
+        let idToRemove = historyTasks.value.findIndex(item => item.id == id)
+        if (idToRemove != -1) {
             historyTasks.value.splice(idToRemove, 1)
         }
     }
@@ -320,7 +330,7 @@ const removeTask = (id, source) => {
 }
 
 const saveTasks = () => {
-    //合并completedTasks与history的json内容
+    //合并completedTasks与historyRasks的json内容
     const allHistory = historyTasks.value.concat(completedTasks.value)
     //持久化的JSON文件中保存的只有两个列表，一个保存的是未完成的任务，一个保存的是历史任务
     const allTasks = {
@@ -330,26 +340,27 @@ const saveTasks = () => {
     //默认所有所有数据存储在localStorage中,5MB内容足够存储所有数据
     localStorage.setItem('vue3-todo-tasks', JSON.stringify(allTasks));
     // window.electronAPI.updateAllTasksJson(JSON.stringify(allTasks))
-    
+
 }
 const loadTasks = async () => {
     // const allTasks = await axios.get("allTasks.json")
-    let allTasks = {}
-    try{
-        const rawAllTasks = localStorage.getItem('vue3-todo-tasks')
-        allTasks = JSON.parse(rawAllTasks)
-    }catch{
-        allTasks = {
+    let allTasks = {
             uncompletedTasks: [],
             historyTasks: []
         }
+    try {
+        const rawAllTasks = localStorage.getItem('vue3-todo-tasks')
+        if(rawAllTasks!==null){
+            allTasks = JSON.parse(rawAllTasks)
+        }   
+    } catch {
         print("错误: 读取本地存储的任务数据失败，已初始化为空列表")
     }
-    uncompletedTasks.value = allTasks.uncompletedTasks? allTasks.uncompletedTasks :[]
-    historyTasks.value = allTasks.historyTasks? allTasks.historyTasks :[]
+    uncompletedTasks.value = allTasks.uncompletedTasks ? allTasks.uncompletedTasks : []
+    historyTasks.value = allTasks.historyTasks ? allTasks.historyTasks : []
     console.log("已加载本地存储的任务数据")
-    console.log("待完成任务:",uncompletedTasks.value)
-    console.log("历史任务:",historyTasks.value)
+    console.log("待完成任务:", uncompletedTasks.value)
+    console.log("历史任务:", historyTasks.value)
 
 
 
@@ -394,6 +405,13 @@ const handleKeydown = (event) => {
 onMounted(async () => {
     //挂载键盘ESC监听
     window.addEventListener('keydown', handleKeydown);
+    //监听数据是否更新
+    window.electronAPI.onTasksNeedRefresh(async () => {
+        console.log("收到数据更新通知，重新加载任务列表")
+        //清除已完成任务列表
+        completedTasks.value = []
+        loadTasks()
+    })
 
     // let transparetColor=0.9;
     // defaultBackgroundColor.value={
@@ -615,7 +633,6 @@ const getWindowHeight = () => {
 }
 
 .todo-card {
-    transition: all 0.3s ease;
     box-shadow: var(--shadow-sm);
     background-color: var(--color-white);
     border-radius: 0.5rem;
@@ -694,11 +711,10 @@ const getWindowHeight = () => {
 .footer p:first-child {
     margin-bottom: 4px;
 }
-
 .fade-enter-active,
-.fade-leave-active {
+/* .fade-leave-active {
     transition: opacity 0.3s ease, transform 0.3s ease;
-}
+} */
 
 .fade-enter-from,
 .fade-leave-to {

@@ -12,6 +12,9 @@ const SNAP_MARGIN_X = 80;   // 左右吸附距离
 const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更小，更不敏感）
 const SNAP_DELAY = 100;     // 防抖延迟(ms)
 let snapTimeout: NodeJS.Timeout | null = null;
+
+let mainWindowRef: BrowserWindow;
+let settingWindowRef: BrowserWindow;
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -49,6 +52,7 @@ function createWindow() {
       sandbox: false
     }
   })
+  mainWindowRef = mainWindow
   let isSnapping = false;
 
   // 启用磁吸效果
@@ -159,6 +163,7 @@ function createSettingWindow() {
       sandbox: false
     }
   })
+  settingWindowRef = mainWindow
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -200,6 +205,12 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on('data-updated', (event) => {
+  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+    // 向主视图窗口发送更新信号
+    mainWindowRef.webContents.send('tasks-need-refresh');
+  }
+})
   ipcMain.handle('exportJson', async (event, jsonData) => {
     try {
       // 1. 弹出保存对话框，让用户选择保存位置和文件名
@@ -236,7 +247,54 @@ app.whenReady().then(() => {
     setExcel(myjson, name)
     return "yes"
   })
+  ipcMain.handle('importJson', async (event) => {
+    try {
+      // 1. 弹出打开文件对话框，让用户选择要导入的 JSON 文件
+      const result = await dialog.showOpenDialog({
+        title: '选择要导入的 TODO 数据文件',
+        filters: [
+          { name: 'JSON Files', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile'] // 确保用户只能选择文件，不能选择文件夹
+      });
 
+      // 2. 如果用户取消了选择（result.canceled 为 true 或没有选择文件）
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, message: '用户取消了文件选择', data: null };
+      }
+
+      const filePath = result.filePaths[0];
+
+      // 3. 读取文件内容
+      const jsonData = await fs.readFile(filePath, 'utf8');
+
+      // 4. 返回成功信息和解析后的数据
+      return {
+        success: true,
+        message: '文件导入成功',
+        data: jsonData,
+        path: filePath
+      };
+    } catch (error) {
+      // 5. 捕获并返回错误信息
+      console.error('导入文件失败:', error);
+
+      // 根据错误类型提供更具体的错误信息
+      let errorMessage = '导入文件时发生未知错误';
+      if (error instanceof SyntaxError) {
+        errorMessage = '文件格式错误：选择的文件不是有效的 JSON 格式';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+        data: null
+      };
+    }
+  });
   //获取图片路径
   ipcMain.handle('getImgPath', async () => {
     const mypath = await dataHandle.getImgPath()
