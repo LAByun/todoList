@@ -76,7 +76,7 @@
 
                     <div key="2" class="selectContainerClass" v-if="showSelect">
 
-
+                        <!-- 未完成的任务清单 -->
                         <draggable :list="uncompletedTasks" item-key="id" tag="div" @end="onDragEnd"
                             ghost-class="ghost-card" chosen-class="chosen-card" animation="200">
                             <template #item="{ element: task }">
@@ -113,7 +113,42 @@
                             </template>
                         </draggable>
                         <!-- 去除的任务清单 -->
-                        <div v-for="(task, index) in completedTasks" :key="task.id">
+                        <draggable :list="completedTasks" item-key="id" tag="div" @end="onDragEnd"
+                            ghost-class="ghost-card" chosen-class="chosen-card" animation="200">
+                            <template #item="{ element: task }">
+                                <div> <!-- 每个任务的容器 -->
+                                    <div class="todo-card">
+                                        <div class="task-row" style="flex: 1;">
+                                            <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
+                                            <span :class="{ 'completed': task.completed }" style="flex: 1;"
+                                                @click="setTask(task, task.id)">{{ task.text }}</span>
+                                        </div>
+                                        <div>
+                                            <el-button type="primary" plain size="small"
+                                                @click="changeTask(task.id, 'completedTasks')" circle>
+                                                <Edit v-if="!task.editAble" style="width: 15px;" />
+                                                <Right v-else style="width: 15px;" />
+                                            </el-button>
+                                            <el-button type="danger" plain size="small"
+                                                @click="removeTask(task.id, 'completedTasks')" circle>
+                                                <Delete style="width: 15px;" />
+                                            </el-button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Transition name="fade">
+                                            <div v-if="task.editAble" style="position: relative;left: 10px;">
+                                                <el-input v-model="task.text" class="inputSet" type="textarea"
+                                                    ref="taskText"
+                                                    @keyup.enter="changeTask(task.id, 'completedTasks')"
+                                                    placeholder="输入新任务..."></el-input>
+                                            </div>
+                                        </Transition>
+                                    </div>
+                                </div>
+                            </template>
+                        </draggable>
+                        <!-- <div v-for="(task, index) in completedTasks" :key="task.id">
                             <div class="todo-card">
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
@@ -153,7 +188,7 @@
                             </div>
 
 
-                        </div>
+                        </div> -->
 
                     </div>
                     <!-- 历史记录 -->
@@ -169,18 +204,10 @@
 
                                     <el-button type="danger" plain size="small"
                                         @click="removeTask(task.id, 'historyTasks')" circle>
-
-
                                         <Delete style="width: 15px;" />
                                     </el-button>
-
-
                                 </div>
-
                             </div>
-
-
-
                         </div>
                     </div>
                     <div key="4" v-if="!((uncompletedTasks.length + completedTasks.length === 0) && showSelect)" class="stats">
@@ -194,13 +221,7 @@
                     </div>
                 </transition-group>
             </transition>
-
-
-
-
         </div>
-
-
     </div>
 </template>
 
@@ -640,6 +661,7 @@ const getWindowHeight = () => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: all 0.3s ease;
 }
 
 .todo-card:hover {
@@ -651,6 +673,7 @@ const getWindowHeight = () => {
 .task-row {
     display: flex;
     align-items: center;
+    
 }
 
 .task-row .el-checkbox {

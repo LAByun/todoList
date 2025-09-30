@@ -71,7 +71,7 @@
 
         <!-- 主题选择 -->
         <div class="setting-item">
-          <h3 class="setting-name">主题颜色(暂不可用)</h3>
+          <h3 class="setting-name">主题颜色</h3>
           <div class="theme-selector">
             <div v-for="theme in themes" :key="theme.id" class="theme-preview" :class="[
               theme.class,
@@ -108,10 +108,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted,watch } from 'vue';
 import { Delete, Edit, Document, Plus, Search, List, Setting, Right, Select, CloseBold, RefreshRight } from '@element-plus/icons-vue'
 import { Image, Save, Sliders } from 'lucide-vue-next';
 import { ElNotification } from 'element-plus'
+import { initTheme, setTheme, getCurrentTheme, THEMES } from '../utils/theme'
 
 // 默认设置
 const defaultSettings = {
@@ -134,7 +135,12 @@ const themes = [
   { id: 'purple', name: '紫色', class: 'theme-purple' },
   { id: 'pink', name: '粉色', class: 'theme-pink' }
 ];
-
+// 监听主题变化
+watch(() => settings.theme, (newTheme) => {
+  setTheme(newTheme)
+  // 实时保存主题设置
+  localStorage.setItem('todolist-settings', JSON.stringify(settings));
+})
 // 状态标志
 const saving = ref(false);
 const saveStatus = ref(false);
@@ -143,7 +149,7 @@ const changeOpacity = (opacity) => {
   console.log(opacity / 100)
 
   window.electronAPI.setTransparentColor(opacity / 100)
-  localStorage.setItem('dolist-settings', JSON.stringify(settings));
+  localStorage.setItem('todolist-settings', JSON.stringify(settings));
   localStorage.setItem('vue3-todo-transparentColor', JSON.stringify(opacity / 100));
 }
 
@@ -157,11 +163,15 @@ const portError = computed(() => {
 
 // 从本地存储加载设置
 const loadSettings = () => {
-  const saved = localStorage.getItem('dolist-settings');
+  const saved = localStorage.getItem('todolist-settings');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       Object.assign(settings, parsed);
+      // 初始化主题
+      const currentTheme = getCurrentTheme()
+      settings.theme = currentTheme
+      setTheme(currentTheme)
     } catch (e) {
       console.error('Failed to parse settings', e);
     }
@@ -266,21 +276,21 @@ async function clearAllData() {
 }
 // 保存设置到本地存储
 const saveSettings = () => {
-  //   if (portError.value) {
-  //     ElMessage.error('请修正端口号设置后再保存');
-  //     return;
-  //   }
-
   saving.value = true;
-
   window.electronAPI.setLoginAuto(settings.autoStart)
 
   // 模拟保存操作
   setTimeout(() => {
-    localStorage.setItem('dolist-settings', JSON.stringify(settings));
+    localStorage.setItem('todolist-settings', JSON.stringify(settings));
     saving.value = false;
     saveStatus.value = true;
-
+    // 显示主题切换成功通知
+    const themeName = themes.find(t => t.id === settings.theme)?.name || '主题'
+    ElNotification({
+      title: '设置已保存',
+      message: `${themeName}已应用成功`,
+      type: 'success',
+    })
     // 2秒后恢复按钮状态
     setTimeout(() => {
       saveStatus.value = false;
@@ -300,10 +310,185 @@ const resetSettings = () => {
 };
 
 // 初始化加载设置
-onMounted(loadSettings);
+onMounted(()=>{
+  loadSettings()
+  initTheme()
+});
 </script>
-
 <style scoped>
+.settings-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+  background-color: var(--header-bg);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.setting-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+.setting-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.setting-item {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-description {
+  margin-bottom: 10px;
+}
+
+.setting-name {
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 3px;
+}
+
+.setting-hint {
+  font-size: 13px;
+  color: var(--el-color-info);
+}
+
+.setting-label {
+  display: block;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.setting-input {
+  width: 100%;
+}
+
+.error-message {
+  font-size: 13px;
+  color: var(--el-color-danger);
+  margin-top: 5px;
+}
+
+.theme-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.theme-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.theme-preview:hover {
+  transform: scale(1.05);
+}
+
+.theme-selected {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+}
+
+.theme-light { background-color: #ffffff; border: 1px solid var(--border-color); }
+.theme-dark { background-color: #1a1a1a; }
+.theme-blue { background-color: #dbeafe; }
+.theme-green { background-color: #dcfce7; }
+.theme-purple { background-color: #f3e8ff; }
+.theme-pink { background-color: #fce7f3; }
+
+.opacity-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.opacity-slider {
+  flex: 1;
+}
+
+.opacity-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  min-width: 45px;
+  text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+  gap: 15px;
+}
+
+.btn {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.save-btn {
+  background-color: var(--el-color-primary);
+  color: #fff;
+  border: none;
+}
+
+.save-btn:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 80%, black);
+}
+</style>
+<!-- <style scoped>
 .settings-container {
   max-width: 800px;
   margin: 0 auto;
@@ -527,4 +712,4 @@ onMounted(loadSettings);
 .btn-icon {
   margin-right: 8px;
 }
-</style>
+</style> -->
