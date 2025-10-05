@@ -1,18 +1,21 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, nativeImage, Menu ,screen} from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, nativeImage, Menu, screen } from 'electron'
 import { join } from 'path'
-import fs from 'fs'
+import fs from 'fs/promises'
 import path from 'path'
 import { dialog } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setExcel } from './excelHandle'
 import * as dataHandle from './dataHandle'
-  // 磁吸效果参数
-  const SNAP_MARGIN_X = 80;   // 左右吸附距离
-  const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更小，更不敏感）
-  const SNAP_DELAY = 100;     // 防抖延迟(ms)
-  let snapTimeout: NodeJS.Timeout | null = null;
-  function createWindow() {
+// 磁吸效果参数
+const SNAP_MARGIN_X = 80;   // 左右吸附距离
+const SNAP_MARGIN_Y = 20;  // 上下吸附距离（更小，更不敏感）
+const SNAP_DELAY = 100;     // 防抖延迟(ms)
+let snapTimeout: NodeJS.Timeout | null = null;
+
+let mainWindowRef: BrowserWindow;
+let settingWindowRef: BrowserWindow;
+function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 490,
@@ -49,13 +52,14 @@ import * as dataHandle from './dataHandle'
       sandbox: false
     }
   })
+  mainWindowRef = mainWindow
   let isSnapping = false;
-  
+
   // 启用磁吸效果
   const enableSnapEffect = (win: BrowserWindow) => {
     win.on('move', () => {
       if (isSnapping) return;
-      
+
       // 防抖处理
       if (snapTimeout) clearTimeout(snapTimeout);
       snapTimeout = setTimeout(() => {
@@ -69,40 +73,40 @@ import * as dataHandle from './dataHandle'
     const winBounds = win.getBounds();
     const display = screen.getDisplayNearestPoint(winBounds);
     const { workArea } = display;
-    
+
     // 计算窗口到屏幕各边的距离
     const toLeft = winBounds.x - workArea.x;
     const toRight = (workArea.x + workArea.width) - (winBounds.x + winBounds.width);
     const toTop = winBounds.y - workArea.y;
     const toBottom = (workArea.y + workArea.height) - (winBounds.y + winBounds.height);
-    
+
     // 确定新位置（优先处理左右吸附）
     let newX = winBounds.x;
     let newY = winBounds.y;
-    
+
     // 1. 优先处理左右吸附
     if (Math.abs(toLeft) <= SNAP_MARGIN_X) {
       newX = workArea.x; // 吸附到左边
     } else if (Math.abs(toRight) <= SNAP_MARGIN_X) {
       newX = workArea.x + workArea.width - winBounds.width; // 吸附到右边
     }
-    
+
     // 2. 再处理上下吸附（使用更小的吸附距离）
     if (Math.abs(toTop) <= SNAP_MARGIN_Y) {
       newY = workArea.y; // 吸附到顶部
     } else if (Math.abs(toBottom) <= SNAP_MARGIN_Y) {
       newY = workArea.y + workArea.height - winBounds.height; // 吸附到底部
     }
-    
+
     // 3. 确保窗口完全在屏幕内（重要！）
     newX = Math.max(workArea.x, Math.min(newX, workArea.x + workArea.width - winBounds.width));
     newY = Math.max(workArea.y, Math.min(newY, workArea.y + workArea.height - winBounds.height));
-    
+
     // 如果位置有变化，则应用新位置
     if (newX !== winBounds.x || newY !== winBounds.y) {
       isSnapping = true;
       win.setPosition(Math.round(newX), Math.round(newY), true);
-      
+
       // 重置标志
       setTimeout(() => isSnapping = false, 100);
     }
@@ -127,7 +131,7 @@ import * as dataHandle from './dataHandle'
     mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-//  mainWindow.webContents.openDevTools({ mode: 'detach' });
+    //  mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
@@ -159,6 +163,7 @@ function createSettingWindow() {
       sandbox: false
     }
   })
+  settingWindowRef = mainWindow
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -200,10 +205,41 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
-  ipcMain.handle('exportJson', (event, myjson) => {
-    console.log(myjson)
-    saveJson(myjson)
-    return "yes"
+  ipcMain.on('data-updated', (event) => {
+  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+    // 向主视图窗口发送更新信号
+    mainWindowRef.webContents.send('tasks-need-refresh');
+  }
+})
+  ipcMain.handle('exportJson', async (event, jsonData) => {
+    try {
+      // 1. 弹出保存对话框，让用户选择保存位置和文件名
+      const result = await dialog.showSaveDialog({
+        title: '保存 TODO 数据文件',
+        defaultPath: "todo.json", // 默认建议的文件名
+        filters: [
+          { name: 'JSON Files', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+
+      // 2. 如果用户取消了保存（result.canceled 为 true 或 result.filePath 为空）
+      if (result.canceled || !result.filePath) {
+        return { success: false, message: '用户取消了保存操作' };
+      }
+
+      // 3. 将 JSON 数据转换为格式化的字符串并写入文件
+      const jsonString = JSON.stringify(jsonData, null, 2); // null, 2 用于美化输出，缩进2个空格
+      await fs.writeFile(result.filePath, jsonString, 'utf8');
+
+      // 4. 返回成功信息
+      return { success: true, path: result.filePath };
+    } catch (error) {
+      // 5. 捕获并返回错误信息
+      console.error('保存文件失败:', error);
+      const errorMessage = typeof error === 'object' && error !== null && 'message' in error ? (error as { message: string }).message : String(error);
+      return { success: false, message: errorMessage };
+    }
   })
   //处理表格
   ipcMain.handle('exportExcel', (event, myjson, name) => {
@@ -211,7 +247,54 @@ app.whenReady().then(() => {
     setExcel(myjson, name)
     return "yes"
   })
+  ipcMain.handle('importJson', async (event) => {
+    try {
+      // 1. 弹出打开文件对话框，让用户选择要导入的 JSON 文件
+      const result = await dialog.showOpenDialog({
+        title: '选择要导入的 TODO 数据文件',
+        filters: [
+          { name: 'JSON Files', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile'] // 确保用户只能选择文件，不能选择文件夹
+      });
 
+      // 2. 如果用户取消了选择（result.canceled 为 true 或没有选择文件）
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, message: '用户取消了文件选择', data: null };
+      }
+
+      const filePath = result.filePaths[0];
+
+      // 3. 读取文件内容
+      const jsonData = await fs.readFile(filePath, 'utf8');
+
+      // 4. 返回成功信息和解析后的数据
+      return {
+        success: true,
+        message: '文件导入成功',
+        data: jsonData,
+        path: filePath
+      };
+    } catch (error) {
+      // 5. 捕获并返回错误信息
+      console.error('导入文件失败:', error);
+
+      // 根据错误类型提供更具体的错误信息
+      let errorMessage = '导入文件时发生未知错误';
+      if (error instanceof SyntaxError) {
+        errorMessage = '文件格式错误：选择的文件不是有效的 JSON 格式';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      return {
+        success: false,
+        message: errorMessage,
+        data: null
+      };
+    }
+  });
   //获取图片路径
   ipcMain.handle('getImgPath', async () => {
     const mypath = await dataHandle.getImgPath()
@@ -230,9 +313,10 @@ app.whenReady().then(() => {
     // console.log(res)
     return res
   })
-  //废弃
-  ipcMain.handle('updateHistoryJson', async (event, jsonData) => {
-    const res = await dataHandle.updateHistoryJson(jsonData)
+
+  //更新所有任务到JSON文件
+  ipcMain.handle('updateAllTasksJson', async (event, jsonData) => {
+    const res = dataHandle.updateAllTasksJson(jsonData)
     // console.log(res)
     return res
   })
@@ -288,7 +372,7 @@ function createTray(mainWindow: BrowserWindow) {
   const iconPath = path.join(__dirname, '../../resources/icon.png');
   const trayIcon = nativeImage.createFromPath(iconPath);
   let tray = new Tray(trayIcon);
-mainWindow.setSkipTaskbar(true) 
+  mainWindow.setSkipTaskbar(true)
   // 托盘菜单
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -313,23 +397,6 @@ mainWindow.setSkipTaskbar(true)
     mainWindow.show()
     mainWindow.setSkipTaskbar(true)
   });
-}
-async function saveJson(params: object[]) {
-  const { filePath } = await dialog.showSaveDialog({
-    title: 'Save JSON File',
-    defaultPath: 'table1.json',
-    filters: [{ name: 'JSON Files', extensions: ['json'] }]
-  });
-  if (filePath) {
-    const jsonData = JSON.stringify(params, null, 2);
-    fs.writeFile(filePath, jsonData, 'utf-8', (err) => {
-      if (err) {
-        console.error('Error writing JSON file:', err);
-      } else {
-        console.log('JSON file saved successfully');
-      }
-    });
-  }
 }
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

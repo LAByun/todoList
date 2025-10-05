@@ -1,0 +1,97 @@
+/* 默认浅色主题 */
+:root {
+  /* Element Plus 主题变量 */
+  --el-color-primary: #409EFF;
+  --el-color-success: #67C23A;
+  --el-color-warning: #E6A23C;
+  --el-color-danger: #F56C6C;
+  --el-color-info: #909399;
+  
+  /* 自定义应用变量 */
+  --bg-color: #f8fafc;
+  --text-color: #303133;
+  --border-color: #e6e6e6;
+  --card-bg: #ffffff;
+  --header-bg: #ffffff;
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+  --el-color-primary: #337ecc;
+  --el-color-success: #529b2e;
+  --el-color-warning: #b8822b;
+  --el-color-danger: #c45656;
+  --el-color-info: #73767a;
+  
+  --bg-color: #141414;
+  --text-color: #cfd3dc;
+  --border-color: #4c4d4f;
+  --card-bg: #1d1e1f;
+  --header-bg: #1f1f1f;
+}
+
+/* 蓝色主题 */
+[data-theme="blue"] {
+  --el-color-primary: #409EFF;
+  --el-color-success: #67C23A;
+  --el-color-warning: #E6A23C;
+  --el-color-danger: #F56C6C;
+  --el-color-info: #909399;
+  
+  --bg-color: #ecf5ff;
+  --text-color: #303133;
+  --border-color: #b3d8ff;
+  --card-bg: #d9ecff;
+  --header-bg: #d9ecff;
+}
+
+/* 绿色主题 */
+[data-theme="green"] {
+  --el-color-primary: #67C23A;
+  --el-color-success: #85ce61;
+  --el-color-warning: #ebb563;
+  --el-color-danger: #f78989;
+  --el-color-info: #a6a9ad;
+  
+  --bg-color: #f0f9eb;
+  --text-color: #303133;
+  --border-color: #b3e19d;
+  --card-bg: #e1f3d8;
+  --header-bg: #e1f3d8;
+}
+
+/* 紫色主题 */
+[data-theme="purple"] {
+  --el-color-primary: #9254de;
+  --el-color-success: #67C23A;
+  --el-color-warning: #E6A23C;
+  --el-color-danger: #F56C6C;
+  --el-color-info: #909399;
+  
+  --bg-color: #f9f0ff;
+  --text-color: #303133;
+  --border-color: #d3adf7;
+  --card-bg: #efdbff;
+  --header-bg: #efdbff;
+}
+
+/* 粉色主题 */
+[data-theme="pink"] {
+  --el-color-primary: #f759ab;
+  --el-color-success: #67C23A;
+  --el-color-warning: #E6A23C;
+  --el-color-danger: #F56C6C;
+  --el-color-info: #909399;
+  
+  --bg-color: #fff0f6;
+  --text-color: #303133;
+  --border-color: #ffadd2;
+  --card-bg: #ffd6e7;
+  --header-bg: #ffd6e7;
+}
+* {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}

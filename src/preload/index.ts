@@ -16,8 +16,11 @@ if (process.contextIsolated) {
       exportJson:(myjson)=>{
         return ipcRenderer.invoke('exportJson',myjson)
       },
-      exportExcel:(myjson,name)=>{
-        return ipcRenderer.invoke('exportExcel',myjson,name)
+      importJson:(myjson)=>{
+        return ipcRenderer.invoke('importJson',myjson)
+      },
+      exportExcel:(myjson)=>{
+        return ipcRenderer.invoke('exportExcel',myjson)
       },
       getImgPath:()=>{
         return ipcRenderer.invoke('getImgPath')
@@ -28,8 +31,8 @@ if (process.contextIsolated) {
       changeImg:(imgPath,oldPath)=>{
         return ipcRenderer.invoke('changeImg',imgPath,oldPath)
       },
-      updateHistoryJson:(jsonData)=>{
-        return ipcRenderer.invoke('updateHistoryJson',jsonData)
+      updateAllTasksJson:(jsonData)=>{
+        return ipcRenderer.invoke('updateAllTasksJson',jsonData)
       },
       closeWin:()=>{
         return ipcRenderer.invoke('closeWin')
@@ -46,6 +49,8 @@ if (process.contextIsolated) {
       setTransparentColor:(color:string)=>{
         return ipcRenderer.invoke('setTransparentColor',color)
       },
+      sendDataUpdated: () => ipcRenderer.send('data-updated'),
+      onTasksNeedRefresh: (callback) => ipcRenderer.on('tasks-need-refresh', callback),
       sendTransparentColor:(callback)=>{
         return ipcRenderer.on('sendTransparentColor',(event,color)=>{
           callback(color)
