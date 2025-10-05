@@ -73,7 +73,8 @@
                         <span v-if="showSelect">全部待办</span>
                         <span v-else>历史记录</span>
                     </div>
-                    <div key="1" v-if="(uncompletedTasks.length+completedTasks.length === 0) & showSelect" class="empty-state">
+                    <div key="1" v-if="(uncompletedTasks.length + completedTasks.length === 0) & showSelect"
+                        class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>暂无任务，添加一个吧~</p>
                     </div>
@@ -87,9 +88,9 @@
                                 <div> <!-- 每个任务的容器 -->
                                     <div class="todo-card">
                                         <div class="task-row" style="flex: 1;">
-                                                                   <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
+                                            <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                             <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                                @click="setTask(task,task.id)">{{ task.text }}</span>
+                                                @click="setTask(task, task.id)">{{ task.text }}</span>
                                         </div>
                                         <div>
                                             <el-button type="primary" plain size="small"
@@ -120,7 +121,7 @@
                                 <div class="task-row" style="flex: 1;">
                                     <el-checkbox v-model="task.completed" @change="saveTasks"></el-checkbox>
                                     <span :class="{ 'completed': task.completed }" style="flex: 1;"
-                                        @click="setTask(task,index)">{{ task.text
+                                        @click="setTask(task, index)">{{ task.text
                                         }}</span>
                                 </div>
                                 <div>
@@ -185,8 +186,8 @@
 
                         </div>
                     </div>
-                    <div key="4" v-if="uncompletedTasks.length+completedTasks.length> 0" class="stats">
-                        已完成 {{ completedTasks.length }} / {{ uncompletedTasks.length+completedTasks.length }}
+                    <div key="4" v-if="uncompletedTasks.length + completedTasks.length > 0" class="stats">
+                        已完成 {{ completedTasks.length }} / {{ uncompletedTasks.length + completedTasks.length }}
                     </div>
                     <div key="5" style="display: flex; justify-content: flex-end; position: relative; right: 10px;">
                         <el-button size="small" class="mainButton mainColor" @click="changeSelectShow">
@@ -235,8 +236,8 @@ const historyTasks = ref([])
 
 const changeTask = (index, source) => {
     if (source === 'uncompletedTasks') {
-        for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==index){
+        for (let i = 0; i < uncompletedTasks.value.length; i++) {
+            if (uncompletedTasks.value[i].id == index) {
                 let task = uncompletedTasks.value[i];
                 task.editAble = !task.editAble;
             }
@@ -266,16 +267,16 @@ const completedCount = computed(() => {
     return tasks.value.filter(task => task.completed).length;
 });
 //文字被点击
-const setTask = (task,index) => {
-    console.log("task:",index,"被点击了")
+const setTask = (task, index) => {
+    console.log("task:", index, "被点击了")
     console.log(task)
     if (task.completed) {
         console.log(index)
-        task.completed=!task.completed
-        const copyTask=JSON.parse(JSON.stringify(task))
-        for(let i=0;i<completedTasks.value.length;i++){
-            if(completedTasks.value[i].id==task.id){
-                completedTasks.value.splice(i,1)
+        task.completed = !task.completed
+        const copyTask = JSON.parse(JSON.stringify(task))
+        for (let i = 0; i < completedTasks.value.length; i++) {
+            if (completedTasks.value[i].id == task.id) {
+                completedTasks.value.splice(i, 1)
             }
         }
         uncompletedTasks.value.push(copyTask)
@@ -284,12 +285,12 @@ const setTask = (task,index) => {
     }
     else {
         console.log(index)
-        task.completed=!task.completed
-        const copyTask=JSON.parse(JSON.stringify(task))
+        task.completed = !task.completed
+        const copyTask = JSON.parse(JSON.stringify(task))
 
-        for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==task.id){
-                uncompletedTasks.value.splice(i,1)
+        for (let i = 0; i < uncompletedTasks.value.length; i++) {
+            if (uncompletedTasks.value[i].id == task.id) {
+                uncompletedTasks.value.splice(i, 1)
             }
         }
         completedTasks.value.push(copyTask)
@@ -315,7 +316,7 @@ const addTask = () => {
             indexG: tasks.value.length
         });
         newTask.value = '';
-  
+
         saveTasks();
     }
 };
@@ -326,12 +327,12 @@ const removeTask = (index, source) => {
     console.log(source)
     if (source === 'uncompletedTasks') {
         // const task = uncompletedTasks.value[index]
-        for(let i=0;i<uncompletedTasks.value.length;i++){
-            if(uncompletedTasks.value[i].id==index){
+        for (let i = 0; i < uncompletedTasks.value.length; i++) {
+            if (uncompletedTasks.value[i].id == index) {
                 uncompletedTasks.value.splice(i, 1)
             }
         }
-       
+
 
     }
     else if (source === 'completedTasks') {
@@ -362,8 +363,23 @@ const loadTasks = async () => {
     const savedTasks = localStorage.getItem('vue3-todo-tasks');
 
     // 使用promise必须使用async，等待同步获取数据
-    const myHistory = await axios.get("history.json")
 
+    try {
+        const myHistory = await axios.get("history.json")
+        console.log("myHistory:", myHistory.status)
+        if (Array.isArray(myHistory.data)) {
+
+            historyTasks.value = myHistory.data
+            console.log("history", historyTasks.value)
+
+        } else {
+            historyTasks.value = []
+            console.log("历史记录格式错误，已重置")
+        }
+    } catch (error) {
+        historyTasks.value = []
+        console.log("loadTasks error:", error)
+    }
     // console.log("mytest:",myHistory.data)
 
     // console.log("myHistory",myHistory)
@@ -378,12 +394,7 @@ const loadTasks = async () => {
         const copyDeepMyCompletedTasks = JSON.parse(JSON.stringify(myCompletedTasks));
         completedTasks.value = copyDeepMyCompletedTasks;
     }
-    if (myHistory) {
 
-        historyTasks.value = myHistory.data
-        console.log("history", historyTasks.value)
-
-    }
 };
 const updateHeight = () => {
     const height = document.body.clientHeight;
